@@ -543,6 +543,47 @@ h2 { font-size: 1.5rem; margin-bottom: 6px; color: var(--blau) }
 /* ===== Chart Container ===== */
 .chart-wrap { position: relative; height: 220px }
 
+/* ===== Backup-Karte ===== */
+.backup-card { border-top: 4px solid var(--gold) }
+.backup-hinweis {
+  font-size: .82rem;
+  color: #b05000;
+  background: #fff8ee;
+  border-radius: 8px;
+  padding: 8px 12px;
+  margin-bottom: 14px;
+}
+.backup-buttons {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.backup-btn {
+  flex: 1;
+  min-width: 140px;
+  padding: 12px 16px;
+  border-radius: 10px;
+  font-size: .88rem;
+  font-weight: 700;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  transition: transform .15s, box-shadow .15s;
+  cursor: pointer;
+  border: none;
+}
+.backup-btn span { font-size: .72rem; font-weight: 400; opacity: .8 }
+.backup-btn:hover { transform: translateY(-2px); box-shadow: 0 4px 14px rgba(0,0,0,.15) }
+.export-btn { background: var(--blau); color: var(--weiss) }
+.import-btn { background: var(--gold); color: var(--blau) }
+.backup-status {
+  margin-top: 10px;
+  font-size: .8rem;
+  color: #3a7a50;
+  min-height: 18px;
+}
+
 /* ===== Heute-Leiste ===== */
 .heute-leiste {
   display: flex;
@@ -818,6 +859,24 @@ h2 { font-size: 1.5rem; margin-bottom: 6px; color: var(--blau) }
       <div class="value">3:59</div>
       <div class="label">Zielzeit (h:mm)</div>
     </div>
+  </div>
+
+  <!-- Fortschritts-Sicherung -->
+  <div class="card backup-card">
+    <div class="card-title"><span class="icon">💾</span> Fortschritt sichern & wiederherstellen</div>
+    <p class="backup-hinweis">⚠️ iOS löscht App-Daten nach ~7 Tagen Inaktivität. Regelmäßig exportieren!</p>
+    <div class="backup-buttons">
+      <button class="backup-btn export-btn" onclick="exportiereForschritt()">
+        ⬆️ Exportieren
+        <span>JSON-Datei speichern</span>
+      </button>
+      <button class="backup-btn import-btn" onclick="document.getElementById('import-input').click()">
+        ⬇️ Importieren
+        <span>JSON-Datei laden</span>
+      </button>
+      <input type="file" id="import-input" accept=".json" style="display:none" onchange="importiereForschritt(this)">
+    </div>
+    <div class="backup-status" id="backup-status"></div>
   </div>
 
   <!-- Fortschritt -->
@@ -1862,6 +1921,57 @@ const SPRUECHE = [
   { zitat: 'Marathons enden. Erinnerungen bleiben für immer.',                                     autor: '– Unbekannt',             icon: '📸' },
   { zitat: 'Sub vier Stunden – das ist kein Traum. Das ist ein Plan.',                             autor: '– Für dich',              icon: '⚡' },
 ];
+
+// ============================================================
+// EXPORT / IMPORT
+// ============================================================
+function exportiereForschritt() {
+  const daten = {
+    version: 1,
+    exportiert: new Date().toISOString(),
+    erledigt: ladeErledigt(),
+    checkliste: ladeCheckliste(),
+  };
+  const blob = new Blob([JSON.stringify(daten, null, 2)], {type: 'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const datum = new Date().toLocaleDateString('de-DE').replace(/\./g, '-');
+  a.href = url;
+  a.download = `berlin-marathon-fortschritt-${datum}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  zeigBackupStatus('✅ Exportiert! Datei sicher ablegen.');
+}
+
+function importiereForschritt(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const daten = JSON.parse(e.target.result);
+      if (!daten.erledigt) throw new Error('Ungültiges Format');
+      speichereErledigt(daten.erledigt);
+      if (daten.checkliste) speichereCheckliste(daten.checkliste);
+      renderPlan();
+      renderCheckliste();
+      aktualisiereDashboard();
+      erstelleChart();
+      const ex = new Date(daten.exportiert).toLocaleDateString('de-DE');
+      zeigBackupStatus(`✅ Wiederhergestellt! Stand vom ${ex}`);
+    } catch {
+      zeigBackupStatus('❌ Fehler: Ungültige Backup-Datei.');
+    }
+  };
+  reader.readAsText(file);
+  input.value = '';
+}
+
+function zeigBackupStatus(msg) {
+  const el = document.getElementById('backup-status');
+  el.textContent = msg;
+  setTimeout(() => el.textContent = '', 5000);
+}
 
 function zeigeHeuteDatum() {
   const heute = new Date();
