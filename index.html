@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Berlin Marathon">
-<link rel="apple-touch-icon" id="app-icon">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 <meta name="theme-color" content="#1a2744">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
@@ -1835,7 +1835,6 @@ function init() {
   aktualisiereCountdown();
   setInterval(aktualisiereCountdown, 60000);
   zeigeTaglicherSpruch();
-  erstelleAppIcon();
   aktualisiereDashboard();
   renderPlan();
   renderCheckliste();
@@ -1844,41 +1843,6 @@ function init() {
   setTimeout(erstelleChart, 100);
 }
 
-// ============================================================
-// APP-ICON (180×180 px) – wird als Apple Touch Icon gesetzt
-// ============================================================
-function erstelleAppIcon() {
-  const c = document.createElement('canvas');
-  c.width = 180; c.height = 180;
-  const x = c.getContext('2d');
-
-  // Hintergrund dunkelblau
-  x.fillStyle = '#1a2744';
-  x.fillRect(0, 0, 180, 180);
-
-  // Goldener Rand
-  x.strokeStyle = '#c9a84c';
-  x.lineWidth = 7;
-  x.strokeRect(3.5, 3.5, 173, 173);
-
-  // Laufender Mann (groß, mittig)
-  x.font = '82px serif';
-  x.textAlign = 'center';
-  x.fillText('🏃', 90, 105);
-
-  // "BERLIN" in Gold
-  x.fillStyle = '#c9a84c';
-  x.font = 'bold 26px Arial, sans-serif';
-  x.fillText('BERLIN', 90, 143);
-
-  // "MARATHON" kleiner
-  x.font = 'bold 16px Arial, sans-serif';
-  x.fillStyle = 'rgba(201,168,76,.75)';
-  x.fillText('MARATHON', 90, 163);
-
-  // Als PNG-Data-URL ins apple-touch-icon schreiben
-  document.getElementById('app-icon').href = c.toDataURL('image/png');
-}
 
 document.addEventListener('DOMContentLoaded', init);
 
