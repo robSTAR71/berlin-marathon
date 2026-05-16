@@ -1,0 +1,1848 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Berlin Marathon Trainingsplaner – Sub 3:59:59</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+/* ===== CSS-Variablen & Reset ===== */
+:root {
+  --blau:    #1a2744;
+  --gold:    #c9a84c;
+  --gold-h:  #e0bf6e;
+  --weiss:   #ffffff;
+  --grau:    #f4f6fb;
+  --grau2:   #e8edf5;
+  --text:    #1a2744;
+  --schatten: 0 2px 16px rgba(26,39,68,.13);
+  --radius:  12px;
+  /* Einheiten-Farben */
+  --re: #4caf8c;
+  --dl: #3a8fd6;
+  --tl: #e05c3a;
+  --ll: #9b59b6;
+  --frei:   #b0bec5;
+  --kanada: #c0392b;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--grau);color:var(--text);min-height:100vh}
+a{color:var(--gold)}
+button{cursor:pointer;border:none;background:none;font-family:inherit}
+
+/* ===== Header ===== */
+header {
+  background: var(--blau);
+  color: var(--weiss);
+  padding: 0 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 64px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 2px 12px rgba(0,0,0,.3);
+}
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: .02em;
+}
+.logo-icon { font-size: 1.6rem; }
+.logo-sub { font-size: .72rem; font-weight: 400; opacity:.75; display:block; letter-spacing:.04em }
+.countdown-header {
+  text-align: right;
+  font-size: .78rem;
+  opacity:.9;
+  line-height:1.5;
+}
+.countdown-header strong { font-size:1.1rem; color:var(--gold); display:block }
+
+/* ===== Navigation ===== */
+nav {
+  background: var(--blau);
+  border-top: 1px solid rgba(255,255,255,.08);
+  display: flex;
+  overflow-x: auto;
+  gap: 4px;
+  padding: 0 16px;
+  scrollbar-width: none;
+}
+nav::-webkit-scrollbar{display:none}
+.nav-btn {
+  color: rgba(255,255,255,.65);
+  padding: 14px 18px;
+  font-size: .88rem;
+  font-weight: 500;
+  white-space: nowrap;
+  border-bottom: 3px solid transparent;
+  transition: all .2s;
+  flex-shrink: 0;
+}
+.nav-btn:hover { color: var(--weiss) }
+.nav-btn.aktiv { color: var(--gold); border-bottom-color: var(--gold) }
+
+/* ===== Haupt-Content ===== */
+main { max-width: 1200px; margin: 0 auto; padding: 28px 16px 60px }
+.tab { display: none }
+.tab.aktiv { display: block }
+h2 { font-size: 1.5rem; margin-bottom: 6px; color: var(--blau) }
+.section-sub { color: #5a6a8a; font-size: .9rem; margin-bottom: 24px }
+
+/* ===== Karten ===== */
+.card {
+  background: var(--weiss);
+  border-radius: var(--radius);
+  box-shadow: var(--schatten);
+  padding: 24px;
+  margin-bottom: 20px;
+}
+.card-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--blau);
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.card-title .icon { font-size: 1.2rem }
+
+/* ===== Dashboard Grid ===== */
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+  margin-bottom: 20px;
+}
+.stat-card {
+  background: var(--weiss);
+  border-radius: var(--radius);
+  box-shadow: var(--schatten);
+  padding: 20px;
+  text-align: center;
+  border-top: 4px solid var(--gold);
+}
+.stat-card .value { font-size: 2rem; font-weight: 800; color: var(--blau) }
+.stat-card .label { font-size: .8rem; color: #5a6a8a; margin-top: 4px }
+
+/* Fortschrittsbalken */
+.progress-wrap { margin: 8px 0 4px }
+.progress-bar {
+  height: 10px;
+  background: var(--grau2);
+  border-radius: 99px;
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--blau), var(--gold));
+  border-radius: 99px;
+  transition: width .6s ease;
+}
+.progress-label { font-size: .78rem; color: #5a6a8a; margin-top: 4px }
+
+/* ===== Nächste Einheit ===== */
+.naechste-einheit {
+  background: linear-gradient(135deg, var(--blau) 0%, #263a6a 100%);
+  color: var(--weiss);
+  border-radius: var(--radius);
+  padding: 20px 24px;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+.ne-badge {
+  background: var(--gold);
+  color: var(--blau);
+  font-size: .7rem;
+  font-weight: 800;
+  padding: 4px 10px;
+  border-radius: 99px;
+  letter-spacing: .06em;
+  white-space: nowrap;
+}
+.ne-info { flex: 1; min-width: 180px }
+.ne-info h3 { font-size: 1.1rem; margin-bottom: 4px }
+.ne-info p { font-size: .85rem; opacity: .8 }
+.ne-meta { font-size: .82rem; opacity: .7 }
+
+/* ===== Trainingsplan ===== */
+.plan-phase-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 28px 0 10px;
+}
+.phase-badge {
+  background: var(--blau);
+  color: var(--gold);
+  font-size: .72rem;
+  font-weight: 700;
+  padding: 4px 12px;
+  border-radius: 99px;
+  letter-spacing: .05em;
+}
+.phase-name { font-size: 1rem; font-weight: 700; color: var(--blau) }
+.phase-info { font-size: .8rem; color: #5a6a8a }
+
+.woche-card {
+  background: var(--weiss);
+  border-radius: var(--radius);
+  box-shadow: var(--schatten);
+  margin-bottom: 14px;
+  overflow: hidden;
+}
+.woche-header {
+  background: var(--blau);
+  color: var(--weiss);
+  padding: 12px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  user-select: none;
+}
+.woche-header:hover { background: #1e3060 }
+.woche-nr { font-weight: 700; font-size: .95rem }
+.woche-datum { font-size: .78rem; opacity: .7 }
+.woche-km {
+  background: var(--gold);
+  color: var(--blau);
+  font-size: .78rem;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 99px;
+}
+.woche-toggle { font-size: .8rem; opacity: .6 }
+.woche-einheiten {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
+  padding: 16px;
+}
+.woche-einheiten.versteckt { display: none }
+
+/* Einheits-Karte */
+.einheit-karte {
+  border-radius: 10px;
+  padding: 14px;
+  cursor: pointer;
+  transition: transform .15s, box-shadow .15s;
+  position: relative;
+  border: 2px solid transparent;
+}
+.einheit-karte:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,.12) }
+.einheit-karte.erledigt { opacity: .55 }
+.einheit-karte.erledigt::after {
+  content: '✓';
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  font-size: 1.1rem;
+  color: #2ecc71;
+  font-weight: 700;
+}
+.ek-RE { background: #e8f8f2; border-color: var(--re) }
+.ek-DL { background: #e8f3fc; border-color: var(--dl) }
+.ek-TL { background: #fdf0ec; border-color: var(--tl) }
+.ek-LL { background: #f5eeff; border-color: var(--ll) }
+.ek-frei { background: #f5f7fa; border-color: var(--frei); cursor: default }
+.ek-RT  { background: #f0f4f8; border-color: #c8d5e3; cursor: default }
+.ek-RT .ek-typ { background: #b0bec5; color: #fff }
+.ek-KA  { background: #fdf0ee; border-color: var(--kanada) }
+.ek-KA .ek-typ { background: var(--kanada); color: #fff }
+.ek-typ {
+  font-size: .68rem;
+  font-weight: 700;
+  letter-spacing: .08em;
+  padding: 2px 8px;
+  border-radius: 99px;
+  display: inline-block;
+  margin-bottom: 8px;
+}
+.ek-RE .ek-typ { background: var(--re); color: #fff }
+.ek-DL .ek-typ { background: var(--dl); color: #fff }
+.ek-TL .ek-typ { background: var(--tl); color: #fff }
+.ek-LL .ek-typ { background: var(--ll); color: #fff }
+.ek-frei .ek-typ { background: var(--frei); color: #fff }
+.ek-titel { font-size: .88rem; font-weight: 600; margin-bottom: 4px; color: var(--blau) }
+.ek-details { font-size: .75rem; color: #5a6a8a }
+.ek-wochentag { font-size: .72rem; color: #8a9ab0; margin-bottom: 6px }
+.ek-check {
+  margin-top: 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: .75rem;
+  color: #5a6a8a;
+}
+.ek-check input[type=checkbox] {
+  accent-color: var(--blau);
+  width: 14px;
+  height: 14px;
+  cursor: pointer;
+}
+
+/* ===== Modal ===== */
+.modal-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(10,20,50,.55);
+  z-index: 500;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+}
+.modal-overlay.aktiv { display: flex }
+.modal {
+  background: var(--weiss);
+  border-radius: 16px;
+  max-width: 520px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0,0,0,.3);
+}
+.modal-header {
+  background: var(--blau);
+  color: var(--weiss);
+  padding: 20px 24px;
+  border-radius: 16px 16px 0 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+.modal-header h3 { font-size: 1.1rem; margin-bottom: 4px }
+.modal-header .meta { font-size: .8rem; opacity: .7 }
+.modal-close {
+  color: var(--weiss);
+  font-size: 1.4rem;
+  opacity: .7;
+  padding: 0 4px;
+  line-height: 1;
+}
+.modal-close:hover { opacity: 1 }
+.modal-body { padding: 24px }
+.modal-section { margin-bottom: 20px }
+.modal-section h4 {
+  font-size: .8rem;
+  font-weight: 700;
+  color: var(--gold);
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+.modal-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--grau2);
+  font-size: .88rem;
+}
+.modal-row:last-child { border-bottom: none }
+.modal-row span:last-child { font-weight: 600; color: var(--blau) }
+.hf-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 99px;
+  font-size: .75rem;
+  font-weight: 600;
+}
+.modal-tips { font-size: .85rem; line-height: 1.7; color: #3a4a6a }
+.modal-tips li { margin-bottom: 4px; padding-left: 4px }
+
+/* ===== Pace-Rechner ===== */
+.pace-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 20px;
+}
+.pace-input-wrap { display: flex; gap: 10px; align-items: center; flex-wrap: wrap }
+.pace-input-group { display: flex; gap: 4px; align-items: center }
+.pace-input-group input {
+  width: 58px;
+  padding: 10px 8px;
+  border: 2px solid var(--grau2);
+  border-radius: 8px;
+  font-size: 1.3rem;
+  font-weight: 700;
+  text-align: center;
+  color: var(--blau);
+  transition: border-color .2s;
+}
+.pace-input-group input:focus { outline: none; border-color: var(--gold) }
+.pace-input-group span { font-size: 1.3rem; font-weight: 700; color: #8a9ab0 }
+.pace-calc-btn {
+  background: var(--blau);
+  color: var(--weiss);
+  padding: 10px 22px;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: .9rem;
+  transition: background .2s;
+}
+.pace-calc-btn:hover { background: var(--gold); color: var(--blau) }
+
+.pace-ergebnis-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+}
+.pace-item {
+  background: var(--grau);
+  border-radius: 10px;
+  padding: 14px;
+  text-align: center;
+  border-left: 4px solid var(--gold);
+}
+.pace-item .p-val { font-size: 1.4rem; font-weight: 800; color: var(--blau) }
+.pace-item .p-label { font-size: .75rem; color: #5a6a8a; margin-top: 2px }
+.pace-item .p-desc { font-size: .7rem; color: #8a9ab0; margin-top: 2px }
+
+/* Splits-Tabelle */
+.splits-table { width: 100%; border-collapse: collapse; font-size: .88rem }
+.splits-table th {
+  background: var(--blau);
+  color: var(--weiss);
+  padding: 10px 12px;
+  text-align: left;
+  font-weight: 600;
+}
+.splits-table td { padding: 9px 12px; border-bottom: 1px solid var(--grau2) }
+.splits-table tr:nth-child(even) td { background: var(--grau) }
+.splits-table tr:hover td { background: #e8f0fa }
+.splits-table .highlight td { background: #fff5e0 !important; font-weight: 700 }
+.splits-table .ziel td { background: #e8f8f2 !important; font-weight: 700; color: #1a7a50 }
+
+/* ===== Berlin Info ===== */
+.berlin-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 20px;
+}
+.info-list { list-style: none; font-size: .9rem; line-height: 1.8 }
+.info-list li { padding: 4px 0; border-bottom: 1px solid var(--grau2) }
+.info-list li:last-child { border-bottom: none }
+.info-list .icon { margin-right: 8px; font-size: 1rem }
+.checkliste label {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 6px 0;
+  font-size: .88rem;
+  cursor: pointer;
+}
+.checkliste input[type=checkbox] { accent-color: var(--blau); margin-top: 2px; flex-shrink: 0 }
+
+/* Streckenprofil */
+.streckenprofil {
+  width: 100%;
+  height: 80px;
+  margin: 12px 0;
+}
+
+/* Verpflegungs-Stationen */
+.verpflegung-bar {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  margin: 16px 0;
+  position: relative;
+}
+.vp-track {
+  flex: 1;
+  height: 8px;
+  background: var(--grau2);
+  border-radius: 4px;
+  position: relative;
+}
+.vp-station {
+  position: absolute;
+  top: 50%;
+  transform: translateX(-50%) translateY(-50%);
+  width: 14px;
+  height: 14px;
+  background: var(--blau);
+  border: 2px solid var(--gold);
+  border-radius: 50%;
+  cursor: pointer;
+}
+.vp-station:hover::after {
+  content: attr(data-km);
+  position: absolute;
+  bottom: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--blau);
+  color: var(--weiss);
+  font-size: .68rem;
+  padding: 2px 6px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+.vp-station.start { background: var(--re); }
+.vp-station.ziel { background: var(--gold); border-color: var(--blau); }
+
+/* ===== 55+ Tipps ===== */
+.hf-zonen-tabelle { width: 100%; border-collapse: collapse; font-size: .88rem }
+.hf-zonen-tabelle th {
+  background: var(--blau);
+  color: var(--weiss);
+  padding: 10px 12px;
+  text-align: left;
+}
+.hf-zonen-tabelle td { padding: 9px 12px; border-bottom: 1px solid var(--grau2) }
+.zone-1 td:first-child { border-left: 4px solid #4caf50 }
+.zone-2 td:first-child { border-left: 4px solid #8bc34a }
+.zone-3 td:first-child { border-left: 4px solid #ffc107 }
+.zone-4 td:first-child { border-left: 4px solid #ff9800 }
+.zone-5 td:first-child { border-left: 4px solid #f44336 }
+
+.warnung-box {
+  background: #fff5f5;
+  border: 2px solid #f44336;
+  border-radius: 10px;
+  padding: 16px 20px;
+  margin-bottom: 12px;
+}
+.warnung-box h4 { color: #c62828; font-size: .9rem; margin-bottom: 8px }
+.warnung-box ul { font-size: .85rem; line-height: 1.8; padding-left: 20px; color: #5a0000 }
+
+.tipp-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+}
+.tipp-item {
+  background: var(--grau);
+  border-radius: 10px;
+  padding: 16px;
+  border-top: 3px solid var(--gold);
+}
+.tipp-item h4 { font-size: .9rem; margin-bottom: 8px; color: var(--blau) }
+.tipp-item p, .tipp-item li { font-size: .82rem; color: #5a6a8a; line-height: 1.7 }
+.tipp-item ul { padding-left: 16px }
+
+/* ===== Chart Container ===== */
+.chart-wrap { position: relative; height: 220px }
+
+/* ===== Motivationsspruch ===== */
+.motiv-block {
+  background: var(--weiss);
+  border-radius: var(--radius);
+  box-shadow: var(--schatten);
+  padding: 22px 28px;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  border-left: 5px solid var(--gold);
+}
+.motiv-icon { font-size: 2rem; flex-shrink: 0 }
+.motiv-zitat {
+  font-size: 1rem;
+  font-style: italic;
+  color: var(--blau);
+  font-weight: 500;
+  line-height: 1.55;
+  flex: 1;
+  border: none;
+  margin: 0;
+  padding: 0;
+}
+.motiv-autor {
+  font-size: .75rem;
+  color: #8a9ab0;
+  margin-top: 5px;
+  white-space: nowrap;
+  flex-shrink: 0;
+  align-self: flex-end;
+}
+@media (max-width: 500px) {
+  .motiv-block { flex-wrap: wrap }
+  .motiv-autor { align-self: auto }
+}
+
+/* ===== Countdown-Block ===== */
+.countdown-block {
+  background: linear-gradient(135deg, var(--blau) 0%, #263a6a 100%);
+  color: var(--weiss);
+  border-radius: var(--radius);
+  padding: 28px 32px 20px;
+  margin-bottom: 20px;
+  text-align: center;
+  box-shadow: var(--schatten);
+}
+.cd-label { font-size: .8rem; letter-spacing: .12em; opacity: .7; text-transform: uppercase; margin-bottom: 4px }
+.cd-zahl {
+  font-size: 5rem;
+  font-weight: 900;
+  color: var(--gold);
+  line-height: 1;
+  letter-spacing: -.02em;
+}
+.cd-einheit { font-size: 1.1rem; font-weight: 600; margin-top: 4px; opacity: .9 }
+.cd-datum { font-size: .8rem; opacity: .6; margin-top: 2px; margin-bottom: 18px }
+.cd-bar-wrap { max-width: 480px; margin: 0 auto }
+.cd-bar-track {
+  height: 10px;
+  background: rgba(255,255,255,.15);
+  border-radius: 99px;
+  overflow: hidden;
+}
+.cd-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--gold), #e8d080);
+  border-radius: 99px;
+  transition: width .8s ease;
+}
+.cd-bar-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: .72rem;
+  opacity: .6;
+  margin-top: 6px;
+}
+
+/* ===== Print ===== */
+@media print {
+  header, nav, .modal-overlay, .pace-input-wrap button { display: none !important }
+  .woche-einheiten.versteckt { display: grid !important }
+  body { background: white; font-size: 11px }
+  .card, .woche-card { box-shadow: none; border: 1px solid #ddd }
+  .tab { display: block !important }
+  main { padding: 0 }
+  .einheit-karte { break-inside: avoid }
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 600px) {
+  header { height: auto; padding: 12px 16px; flex-wrap: wrap; gap: 8px }
+  .woche-einheiten { grid-template-columns: 1fr 1fr }
+  .dashboard-grid { grid-template-columns: 1fr 1fr }
+}
+
+/* ===== Berlin Skyline SVG ===== */
+.skyline {
+  width: 100%;
+  height: 48px;
+  margin-bottom: 20px;
+  opacity: .18;
+  fill: var(--weiss);
+}
+
+/* ===== Renn-Fortschritt-Anzeige ===== */
+.phasen-bar {
+  display: flex;
+  gap: 4px;
+  margin: 16px 0 8px;
+}
+.phase-seg {
+  height: 10px;
+  border-radius: 3px;
+  flex: 1;
+  position: relative;
+  cursor: default;
+}
+.phase-seg::after {
+  content: attr(data-label);
+  position: absolute;
+  top: 14px;
+  left: 0;
+  font-size: .65rem;
+  white-space: nowrap;
+  color: #5a6a8a;
+}
+.ph-aufbau  { background: var(--re) }
+.ph-intensiv{ background: var(--dl) }
+.ph-kanada  { background: var(--kanada) }
+.ph-peak    { background: var(--tl) }
+.ph-taper   { background: var(--ll) }
+</style>
+</head>
+<body>
+
+<!-- ===== HEADER ===== -->
+<header>
+  <div class="logo">
+    <span class="logo-icon">🏃</span>
+    <div>
+      Berlin Marathon Planer
+      <span class="logo-sub">Sub 3:59:59 · Alter 55 · 20 Wochen</span>
+    </div>
+  </div>
+  <div class="countdown-header">
+    <strong id="countdown-tage">–</strong>
+    bis Berlin Marathon 2026
+  </div>
+</header>
+
+<!-- ===== NAVIGATION ===== -->
+<nav id="nav">
+  <button class="nav-btn aktiv" onclick="zeigeTab('dashboard',this)">📊 Dashboard</button>
+  <button class="nav-btn" onclick="zeigeTab('plan',this)">📅 Trainingsplan</button>
+  <button class="nav-btn" onclick="zeigeTab('pace',this)">⚡ Pace-Rechner</button>
+  <button class="nav-btn" onclick="zeigeTab('berlin',this)">🏆 Berlin Info</button>
+  <button class="nav-btn" onclick="zeigeTab('tipps',this)">💪 55+ Tipps</button>
+</nav>
+
+<!-- ===== HAUPT-INHALT ===== -->
+<main>
+
+<!-- ============================
+     TAB 1: DASHBOARD
+============================= -->
+<div id="tab-dashboard" class="tab aktiv">
+  <h2>Dein Marathon-Dashboard</h2>
+  <p class="section-sub">Berlin Marathon · 27. September 2026 · Ziel: unter 4:00:00 · 20 Wochen (Start: 15. Mai 2026)</p>
+
+  <!-- Countdown-Zähler -->
+  <div class="countdown-block">
+    <div class="cd-label">⏳ Noch</div>
+    <div class="cd-zahl" id="cd-tage-gross">–</div>
+    <div class="cd-einheit">Tage bis Berlin</div>
+    <div class="cd-datum">27. September 2026</div>
+    <div class="cd-bar-wrap">
+      <div class="cd-bar-track">
+        <div class="cd-bar-fill" id="cd-bar-fill"></div>
+      </div>
+      <div class="cd-bar-labels">
+        <span>Trainingsstart</span>
+        <span id="cd-prozent"></span>
+        <span>Renntag</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Phasen-Übersicht -->
+  <div class="card" style="padding-bottom:28px">
+    <div class="card-title"><span class="icon">🗓️</span> Trainings-Phasen</div>
+    <div class="phasen-bar">
+      <div class="phase-seg ph-aufbau"  data-label="Aufbau (W1–5)"          style="flex:5"></div>
+      <div class="phase-seg ph-intensiv" data-label="Intensivierung (W6–11)" style="flex:6"></div>
+      <div class="phase-seg ph-kanada"  data-label="Kanada (W12–13)"         style="flex:2"></div>
+      <div class="phase-seg ph-peak"    data-label="Peak (W14–17)"           style="flex:4"></div>
+      <div class="phase-seg ph-taper"   data-label="Tapering (W18–20)"       style="flex:3"></div>
+    </div>
+    <div style="margin-top:22px;display:flex;gap:16px;flex-wrap:wrap;font-size:.78rem;color:#5a6a8a">
+      <span><span style="color:var(--re)">■</span> Aufbau</span>
+      <span><span style="color:var(--dl)">■</span> Intensivierung</span>
+      <span><span style="color:var(--kanada)">■</span> Kanada 🍁</span>
+      <span><span style="color:var(--tl)">■</span> Peak</span>
+      <span><span style="color:var(--ll)">■</span> Tapering</span>
+    </div>
+  </div>
+
+  <!-- Motivationsspruch des Tages -->
+  <div class="motiv-block">
+    <div class="motiv-icon" id="motiv-icon">💪</div>
+    <blockquote class="motiv-zitat" id="motiv-zitat">–</blockquote>
+    <div class="motiv-autor" id="motiv-autor">–</div>
+  </div>
+
+  <!-- Stat-Karten -->
+  <div class="dashboard-grid">
+    <div class="stat-card">
+      <div class="value" id="d-wochen">–</div>
+      <div class="label">Aktuelle Woche</div>
+    </div>
+    <div class="stat-card">
+      <div class="value" id="d-gesamt-km">726</div>
+      <div class="label">Gesamt-Trainings-km</div>
+    </div>
+    <div class="stat-card">
+      <div class="value" id="d-erledigt">–</div>
+      <div class="label">Einheiten abgehakt</div>
+    </div>
+    <div class="stat-card">
+      <div class="value">3:59</div>
+      <div class="label">Zielzeit (h:mm)</div>
+    </div>
+  </div>
+
+  <!-- Fortschritt -->
+  <div class="card">
+    <div class="card-title"><span class="icon">📈</span> Gesamtfortschritt</div>
+    <div class="progress-wrap">
+      <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+    </div>
+    <div class="progress-label" id="progress-label">0 von 64 Einheiten abgehakt</div>
+  </div>
+
+  <!-- Nächste Einheit -->
+  <div class="naechste-einheit" id="naechste-box">
+    <div class="ne-badge">NÄCHSTE EINHEIT</div>
+    <div class="ne-info">
+      <h3 id="ne-titel">–</h3>
+      <p id="ne-desc">–</p>
+    </div>
+    <div class="ne-meta" id="ne-meta">–</div>
+  </div>
+
+  <!-- Wochenvolumen-Chart -->
+  <div class="card">
+    <div class="card-title"><span class="icon">📉</span> Wochenkilometer (20 Wochen)</div>
+    <div class="chart-wrap"><canvas id="volumChart"></canvas></div>
+  </div>
+</div>
+
+<!-- ============================
+     TAB 2: TRAININGSPLAN
+============================= -->
+<div id="tab-plan" class="tab">
+  <h2>16-Wochen-Trainingsplan</h2>
+  <p class="section-sub">15. Mai – 27. September 2026 · Woche 1 = Rumpfwoche (Fr–So) · Klick auf Einheit für Details</p>
+  <div id="plan-container"></div>
+</div>
+
+<!-- ============================
+     TAB 3: PACE-RECHNER
+============================= -->
+<div id="tab-pace" class="tab">
+  <h2>Pace-Rechner</h2>
+  <p class="section-sub">Berechne alle Trainingspaces aus deiner Zielzeit</p>
+
+  <div class="card">
+    <div class="card-title"><span class="icon">⏱️</span> Zielzeit eingeben</div>
+    <div class="pace-input-wrap">
+      <div class="pace-input-group">
+        <input type="number" id="p-std" min="0" max="9" value="3"> <span>:</span>
+        <input type="number" id="p-min" min="0" max="59" value="59"> <span>:</span>
+        <input type="number" id="p-sek" min="0" max="59" value="59">
+      </div>
+      <button class="pace-calc-btn" onclick="berechnePace()">Berechnen</button>
+    </div>
+    <div class="pace-ergebnis-grid" id="pace-ergebnis"></div>
+  </div>
+
+  <!-- Berlin Splits -->
+  <div class="card">
+    <div class="card-title"><span class="icon">🗺️</span> Berlin-Split-Strategie</div>
+    <p style="font-size:.85rem;color:#5a6a8a;margin-bottom:16px">
+      Empfehlung: Erste 10 km konservativ laufen (~5:50 min/km), dann auf Zielpace stabilisieren.
+      Berlin ist sehr flach – ideale Negativsplit-Chance.
+    </p>
+    <div style="overflow-x:auto">
+      <table class="splits-table" id="splits-table"></table>
+    </div>
+  </div>
+</div>
+
+<!-- ============================
+     TAB 4: BERLIN INFO
+============================= -->
+<div id="tab-berlin" class="tab">
+  <h2>Berlin Marathon – Streckeninfos</h2>
+  <p class="section-sub">Alles Wichtige für den Renntag am 27. September 2026</p>
+
+  <div class="berlin-grid">
+    <!-- Streckenprofil -->
+    <div class="card">
+      <div class="card-title"><span class="icon">🗺️</span> Streckenprofil</div>
+      <svg class="streckenprofil" viewBox="0 0 800 80" preserveAspectRatio="none">
+        <defs>
+          <linearGradient id="profGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#1a2744" stop-opacity=".3"/>
+            <stop offset="100%" stop-color="#1a2744" stop-opacity=".05"/>
+          </linearGradient>
+        </defs>
+        <!-- sehr flaches Profil mit leichtem Netto-Gefälle -->
+        <polyline fill="url(#profGrad)" stroke="#c9a84c" stroke-width="2"
+          points="0,42 50,40 120,38 200,36 280,34 350,35 420,33 500,32 580,30 650,28 720,27 800,25 800,80 0,80"/>
+        <!-- Start/Ziel-Marker -->
+        <circle cx="0" cy="42" r="5" fill="var(--re)"/>
+        <circle cx="800" cy="25" r="5" fill="var(--gold)"/>
+        <text x="4" y="37" font-size="9" fill="#1a2744">Start</text>
+        <text x="762" y="20" font-size="9" fill="#1a2744">Ziel</text>
+      </svg>
+      <ul class="info-list">
+        <li><span class="icon">📏</span> Streckenlänge: 42,195 km</li>
+        <li><span class="icon">⬇️</span> Netto-Höhenverlust: ca. 15 m (leicht bergab)</li>
+        <li><span class="icon">🏙️</span> Straßenbelag: fast durchgehend Asphalt</li>
+        <li><span class="icon">📐</span> Kurven: wenige enge Kurven, meist breite Straßen</li>
+        <li><span class="icon">🌳</span> Schattige Abschnitte: Tiergarten (km 5–12)</li>
+        <li><span class="icon">🏛️</span> Ziel: Brandenburger Tor (Unter den Linden)</li>
+      </ul>
+    </div>
+
+    <!-- Verpflegung -->
+    <div class="card">
+      <div class="card-title"><span class="icon">💧</span> Verpflegungsstationen</div>
+      <p style="font-size:.82rem;color:#5a6a8a;margin-bottom:8px">Wasser &amp; Sportgetränk alle 5 km ab km 15 · Schwämme in der 2. Hälfte</p>
+
+      <!-- Einfache visuelle Darstellung -->
+      <div style="font-size:.82rem;margin:12px 0">
+        <div style="display:flex;gap:0;align-items:center">
+          <div style="flex:1;height:6px;background:var(--grau2);border-radius:3px;position:relative">
+            <div style="position:absolute;left:0;width:100%;height:6px;background:linear-gradient(90deg,var(--re),var(--gold));border-radius:3px;opacity:.3"></div>
+          </div>
+        </div>
+        <div style="display:flex;justify-content:space-between;margin-top:6px;font-size:.7rem;color:#5a6a8a">
+          <span>0 km</span><span>10 km</span><span>21 km HM</span><span>30 km</span><span>42 km</span>
+        </div>
+      </div>
+
+      <ul class="info-list">
+        <li><span class="icon">💧</span> Wasser: km 5, 10, 15, 20, 25, 30, 35, 40</li>
+        <li><span class="icon">🍊</span> Sportgetränk: km 15, 20, 25, 30, 35</li>
+        <li><span class="icon">🍌</span> Bananen: km 22, 32, 37</li>
+        <li><span class="icon">🧽</span> Schwämme: km 25, 30, 35</li>
+        <li><span class="icon">💊</span> Gel-Eigenbedarf: empfohlen ab km 18 alle 45 min</li>
+        <li><span class="icon">🚽</span> Toiletten: an allen Verpflegungsstationen</li>
+      </ul>
+    </div>
+
+    <!-- Wetter -->
+    <div class="card">
+      <div class="card-title"><span class="icon">🌤️</span> Wetter-Tipps (September Berlin)</div>
+      <ul class="info-list">
+        <li><span class="icon">🌡️</span> Typisch: 14–18 °C Starttemperatur</li>
+        <li><span class="icon">🌅</span> Startzeit: ca. 09:15 Uhr (Massenstart)</li>
+        <li><span class="icon">💨</span> Wind: meist moderat aus West/Südwest</li>
+        <li><span class="icon">☔</span> Regenwahrscheinlichkeit: ca. 35 %</li>
+        <li><span class="icon">☀️</span> UV-Index: moderat (kein Sonnenschutz nötig)</li>
+        <li><span class="icon">👕</span> Kleidung: T-Shirt + kurze Hose, kein Regenjacke nötig</li>
+        <li><span class="icon">🧴</span> Tip: Vaseline gegen Reibung einplanen</li>
+      </ul>
+    </div>
+
+    <!-- Startblock -->
+    <div class="card">
+      <div class="card-title"><span class="icon">🚦</span> Startblock & Logistik</div>
+      <ul class="info-list">
+        <li><span class="icon">🏷️</span> Startblock: <strong>E oder F</strong> für Zielzeit 3:45–4:15</li>
+        <li><span class="icon">⏰</span> Zeitnahme: Chip-Zeit (Nettozeit zählt)</li>
+        <li><span class="icon">📍</span> Start: Straße des 17. Juni, Höhe Großer Stern</li>
+        <li><span class="icon">🧳</span> Gepäckabgabe: bis 08:30 Uhr am Startgelände</li>
+        <li><span class="icon">🚇</span> Anreise: S-Bahn Tiergarten / U-Bahn Hansaplatz</li>
+        <li><span class="icon">🏅</span> Medaille: direkt nach der Ziellinie</li>
+        <li><span class="icon">📦</span> Finisher-Tüte: mit Getränken &amp; Snacks am Ziel</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Renntag-Checkliste -->
+  <div class="card">
+    <div class="card-title"><span class="icon">✅</span> Renntag-Checkliste</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:0 30px">
+      <div class="checkliste" id="checkliste"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================
+     TAB 5: 55+ TIPPS
+============================= -->
+<div id="tab-tipps" class="tab">
+  <h2>Training mit 55 – Alters-Anpassungen</h2>
+  <p class="section-sub">Klug trainieren: Regeneration ist das wichtigste Werkzeug eines Masters-Runners</p>
+
+  <!-- HF-Zonen -->
+  <div class="card">
+    <div class="card-title"><span class="icon">❤️</span> Herzfrequenz-Zonen (Max-HF: 165 bpm)</div>
+    <div style="overflow-x:auto">
+      <table class="hf-zonen-tabelle">
+        <thead>
+          <tr><th>Zone</th><th>Name</th><th>% Max-HF</th><th>bpm</th><th>Zweck</th></tr>
+        </thead>
+        <tbody>
+          <tr class="zone-1"><td>Z1</td><td>Regeneration</td><td>50–60 %</td><td>83–99</td><td>Aktive Erholung, lockeres Gehen/Laufen</td></tr>
+          <tr class="zone-2"><td>Z2</td><td>Aerobe Basis</td><td>60–70 %</td><td>99–116</td><td>Lange Läufe, Grundlagenausdauer aufbauen</td></tr>
+          <tr class="zone-3"><td>Z3</td><td>Aerobe Kapazität</td><td>70–80 %</td><td>116–132</td><td>Dauerlauf, angenehm anstrengend</td></tr>
+          <tr class="zone-4"><td>Z4</td><td>Schwelle</td><td>80–90 %</td><td>132–149</td><td>Tempoläufe, Marathon-Pace &amp; schneller</td></tr>
+          <tr class="zone-5"><td>Z5</td><td>VO2max</td><td>90–100 %</td><td>149–165</td><td>Kurze Intervalle, max. 10 % des Volumens</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p style="font-size:.78rem;color:#8a9ab0;margin-top:10px">
+      Berechnung: Max-HF = 220 − 55 = 165 bpm. Bei Medikamenten (Betablocker) Werte anpassen.
+    </p>
+  </div>
+
+  <!-- Warnsignale -->
+  <div class="warnung-box">
+    <h4>⚠️ Übertrainings-Warnsignale – sofort Trainingsumfang reduzieren wenn:</h4>
+    <ul>
+      <li>Ruheherzfrequenz um mehr als 7 bpm erhöht</li>
+      <li>Schlafstörungen oder frühmorgendliches Aufwachen</li>
+      <li>Anhaltende Müdigkeit trotz Ruhe (mehr als 3 Tage)</li>
+      <li>Leistungsabfall trotz gleichem oder erhöhtem Training</li>
+      <li>Stimmungsschwankungen, Reizbarkeit, Motivationsverlust</li>
+      <li>Häufige Erkältungen oder grippale Infekte</li>
+      <li>Anhaltende Muskelschmerzen (mehr als 48h nach Belastung)</li>
+    </ul>
+  </div>
+
+  <!-- Tipp-Karten -->
+  <div class="tipp-grid">
+    <div class="tipp-item">
+      <h4>😴 Schlaf – die wichtigste Trainingseinheit</h4>
+      <ul>
+        <li>7–9 Stunden Schlaf pro Nacht anstreben</li>
+        <li>Regelmäßige Schlafzeiten einhalten</li>
+        <li>Kein Bildschirm 1 Std. vor dem Schlafen</li>
+        <li>Schlafzimmer kühl halten (17–18 °C)</li>
+        <li>Kurze Nickerchen (20 min) nach intensivem Training</li>
+      </ul>
+    </div>
+    <div class="tipp-item">
+      <h4>💪 Kraft-Training (2× pro Woche)</h4>
+      <ul>
+        <li>Kniebeuge, Ausfallschritte, Wadenheben</li>
+        <li>Rumpfstabilisation: Plank, Seitstütz</li>
+        <li>Einbeinige Übungen zur Stabilität</li>
+        <li>Keine schweren Gewichte am Vortag von LL</li>
+        <li>In den Tapering-Wochen reduzieren</li>
+      </ul>
+    </div>
+    <div class="tipp-item">
+      <h4>🧘 Stretching & Mobilität</h4>
+      <ul>
+        <li>Dynamisches Aufwärmen vor jedem Lauf (5–10 min)</li>
+        <li>Statisches Dehnen nur nach dem Lauf</li>
+        <li>Fokus: Hüftbeuger, Waden, IT-Band, Hamstrings</li>
+        <li>Foam-Rolling: täglich 10–15 min empfohlen</li>
+        <li>Yoga oder Mobilitäts-Routine 1×/Woche</li>
+      </ul>
+    </div>
+    <div class="tipp-item">
+      <h4>🥗 Ernährung & Regeneration</h4>
+      <ul>
+        <li>Kohlenhydrate nach LL innerhalb von 30 min</li>
+        <li>Protein: 1,6–2,0 g/kg KG pro Tag</li>
+        <li>Tägliche Flüssigkeitszufuhr: mind. 2,5 Liter</li>
+        <li>Alkohol stark reduzieren (hemmt Regeneration)</li>
+        <li>Vitamin D &amp; Magnesium prüfen lassen</li>
+      </ul>
+    </div>
+    <div class="tipp-item">
+      <h4>🩺 Medizinische Checks</h4>
+      <ul>
+        <li>Sportmedizinisches Check-up vor Trainingsbeginn</li>
+        <li>EKG-Belastungstest empfohlen (Alter 55+)</li>
+        <li>Blutbild: Eisen, Ferritin, Vitamin D, B12</li>
+        <li>Regelmäßige Physiotherapie bei Beschwerden</li>
+        <li>Knie &amp; Hüfte bei Schmerzen sofort abklären</li>
+      </ul>
+    </div>
+    <div class="tipp-item">
+      <h4>📅 Regenerations-Protokoll</h4>
+      <ul>
+        <li>Nach jedem LL: 2 Ruhetage einplanen</li>
+        <li>Alle 4 Wochen: Deload-Woche (−30 % Volumen)</li>
+        <li>Eisbad nach sehr langen Läufen (optional)</li>
+        <li>Kompressionsstrümpfe für Reisen &amp; nach LL</li>
+        <li>Tagebuch führen: HF, Befinden, Qualität notieren</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Renntag-Vorbereitung Alter -->
+  <div class="card" style="margin-top:20px">
+    <div class="card-title"><span class="icon">🏁</span> Race-Day-Besonderheiten für Masters (55+)</div>
+    <ul class="info-list">
+      <li><span class="icon">🌡️</span> Hitze unter 20 °C verträglich – bei über 22 °C Zielpace anpassen (ca. +15 sek/km)</li>
+      <li><span class="icon">⏳</span> Länger zum Warmlaufen brauchen – 20 min lockeres Joggen vor Start</li>
+      <li><span class="icon">💊</span> Ibuprofen im Rennen NICHT nehmen (Nierenschäden bei Ausdauerbelastung)</li>
+      <li><span class="icon">🧂</span> Natriumverlust höher – Elektrolytgetränke an Verpflegungsstationen nutzen</li>
+      <li><span class="icon">🎯</span> Pace-Disziplin: erste Hälfte langsamer (Versuchung widersetzen)</li>
+      <li><span class="icon">🏥</span> Notfallkontakt auf Startnummer vermerken (Rückseite)</li>
+    </ul>
+  </div>
+</div>
+
+</main>
+
+<!-- ===== MODAL ===== -->
+<div class="modal-overlay" id="modal-overlay" onclick="schliesseModal(event)">
+  <div class="modal" id="modal">
+    <div class="modal-header">
+      <div>
+        <h3 id="modal-titel">–</h3>
+        <div class="meta" id="modal-meta">–</div>
+      </div>
+      <button class="modal-close" onclick="schliesseModal()">✕</button>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+  </div>
+</div>
+
+<!-- ===== JAVASCRIPT ===== -->
+<script>
+'use strict';
+
+// ============================================================
+// TRAININGSPLAN-DATEN
+// ============================================================
+
+// Wochenkilometer je Phase (20 Wochen)
+// W1–5: Aufbau | W6–11: Intensivierung | W12–13: Kanada | W14–17: Peak | W18–20: Tapering
+const WOCHENVOLUMEN = [16,34,38,28,40, 42,46,32,48,46,36, 28,24, 44,50,52,38, 32,22,16];
+
+// Phasen-Definition
+const PHASEN = [
+  { name:'Aufbau',        kuerzel:'AUFBAU',   wochen:[1,5],  farbe:'#4caf8c', beschreibung:'Grundlagen legen, Laufgewohnheit aufbauen' },
+  { name:'Intensivierung',kuerzel:'INTENSIV',  wochen:[6,11], farbe:'#3a8fd6', beschreibung:'Umfang steigern, Tempoelemente einführen' },
+  { name:'Kanada',        kuerzel:'KANADA 🍁', wochen:[12,13],farbe:'#c0392b', beschreibung:'Reise-Training Nova Scotia – reduziertes Volumen, Genuss pur' },
+  { name:'Peak',          kuerzel:'PEAK',      wochen:[14,17],farbe:'#e05c3a', beschreibung:'Maximales Volumen, Marathon-spezifische Vorbereitung' },
+  { name:'Tapering',      kuerzel:'TAPERING',  wochen:[18,20],farbe:'#9b59b6', beschreibung:'Volumen reduzieren, frisch & scharf werden' },
+];
+
+// Einheits-Templates je Woche und Typ
+// Format: { typ, titel, km, pace, hfZone, hfBpm, tag, tipps[] }
+function erstellePlan() {
+  const startDatum = new Date('2026-05-15');
+  const plan = [];
+
+  // Blaupause für jede Woche
+  const blaupausen = [
+    // ── W1 (RUMPFWOCHE Fr 15. – So 17. Mai) ─────────────────
+    [
+      {typ:'RE',titel:'Erster Lauf – Einstieg',km:6,pace:'6:30–7:00',hfZone:'Z1–Z2',hfBpm:'83–116',tag:'Fr',tipps:['Willkommen im Trainingsplan!','Sehr locker – nach Gefühl laufen','Kein Tempo-Druck, Gewohnheit aufbauen']},
+      {typ:'DL',titel:'Grundlagen-Dauerlauf',km:10,pace:'6:10–6:30',hfZone:'Z2',hfBpm:'99–116',tag:'Sa',tipps:['Erster Dauerlauf des Plans','Gleichmäßiges Tempo über die gesamte Distanz','Wie fühlt sich die Basis an?']},
+    ],
+    // ── W2 ───────────────────────────────────────────────────
+    [
+      {typ:'RE',titel:'Lockerer Erholungslauf',km:8,pace:'6:30–7:00',hfZone:'Z1–Z2',hfBpm:'83–116',tag:'Mo',tipps:['Locker nach dem langen Lauf','Gerne Walking-Pausen einbauen','Muskelkater ist normal']},
+      {typ:'DL',titel:'Aerober Dauerlauf',km:13,pace:'5:55–6:15',hfZone:'Z2–Z3',hfBpm:'99–132',tag:'Mi',tipps:['Stabiles aerobes Tempo','Letzte 2 km leicht anziehen (optional)','Gutes Essen 2h vor dem Lauf']},
+      {typ:'TL',titel:'Schwellentempo-Intervalle',km:11,pace:'5:15–5:25',hfZone:'Z4',hfBpm:'132–149',tag:'Do',tipps:['4×8 min im Schwellentempo, 3 min Trabpause','Fühlt sich «anstrengend aber machbar» an','Nicht schneller als Vorgabe!']},
+      {typ:'LL',titel:'Progressiver Langer Lauf',km:20,pace:'6:00–6:20',hfZone:'Z2',hfBpm:'99–116',tag:'Sa',tipps:['Letzte 20 min auf Marathonpace','Gels alle 45 min testen','Auf Schuhkomfort und Reibung achten']},
+    ],
+    // ── W3 ───────────────────────────────────────────────────
+    [
+      {typ:'RE',titel:'Regeneration',km:9,pace:'6:30–7:00',hfZone:'Z1–Z2',hfBpm:'83–116',tag:'Mo',tipps:['Ruhige, entspannte Runde','Keine Uhr nötig – nach Gefühl','Stretching & Foam-Rolling danach']},
+      {typ:'DL',titel:'Dauerlauf mit Steigerungen',km:14,pace:'5:50–6:10',hfZone:'Z2–Z3',hfBpm:'99–132',tag:'Mi',tipps:['Am Ende 5×100m Steigerungen (kein Sprint)','Armschwung locker halten','Technik: aufrechte Haltung']},
+      {typ:'TL',titel:'Tempo-Dauer',km:12,pace:'5:20–5:30',hfZone:'Z3–Z4',hfBpm:'116–149',tag:'Do',tipps:['20 min kontinuierlich im Tempodauer-Bereich','2 km Warm-up, 2 km Cool-down','HF: nicht über Z4']},
+      {typ:'LL',titel:'Langer Lauf',km:22,pace:'6:05–6:25',hfZone:'Z2',hfBpm:'99–116',tag:'Sa',tipps:['Höchstes Volumen der Aufbauphase','Km 15–22 ist psychologisch schwer – dranblieben','Verpflegungsstrategie testen']},
+    ],
+    // ── W4 (DELOAD) ───────────────────────────────────────────
+    [
+      {typ:'RE',titel:'Regenerationslauf',km:8,pace:'6:30–7:00',hfZone:'Z1',hfBpm:'83–99',tag:'Mo',tipps:['Deload-Woche! Weniger ist mehr','Körper regeneriert und wird stärker','Nicht versuchen nachzuholen']},
+      {typ:'DL',titel:'Lockerer Dauerlauf',km:10,pace:'6:10–6:30',hfZone:'Z2',hfBpm:'99–116',tag:'Mi',tipps:['Reduziertes Volumen genießen','Frisches Laufgefühl nutzen','Auf Körpersignale achten']},
+      {typ:'TL',titel:'Kurze Tempoeinheit',km:8,pace:'5:25–5:35',hfZone:'Z3',hfBpm:'116–132',tag:'Do',tipps:['Nur 2×10 min leichtes Tempo','Qualität über Quantität','Beine sollten sich gut anfühlen']},
+      {typ:'LL',titel:'Mittellanger Lauf',km:16,pace:'6:15–6:35',hfZone:'Z2',hfBpm:'99–116',tag:'Sa',tipps:['Kürzester langer Lauf der Aufbauphase','Entspannt und locker','Mentale Erholung nutzen']},
+    ],
+    // ── W5 (AUFBAU Abschluss) ─────────────────────────────────
+    [
+      {typ:'RE',titel:'Lockerer Lauf',km:9,pace:'6:20–6:50',hfZone:'Z1–Z2',hfBpm:'83–116',tag:'Mo',tipps:['Letzte Aufbauwoche – Basis ist gelegt!','Gut erholt starten','Kraft-Training diese Woche 2×']},
+      {typ:'DL',titel:'Aerober Dauerlauf',km:14,pace:'5:50–6:10',hfZone:'Z2–Z3',hfBpm:'99–132',tag:'Mi',tipps:['Stabiles Aerob-Tempo über die ganze Distanz','Kein Anziehen in der zweiten Hälfte','Fokus: aerobe Effizienz']},
+      {typ:'TL',titel:'Intervalle 4×1 km',km:11,pace:'5:05–5:15',hfZone:'Z4',hfBpm:'132–149',tag:'Do',tipps:['4×1 km in Halbmarathon-Tempo, 2 min Pause','Gleichmäßige Pace – nicht anfangs zu schnell','Aufwärm- und Cool-down je 2 km']},
+      {typ:'LL',titel:'Langer Lauf',km:22,pace:'6:00–6:20',hfZone:'Z2',hfBpm:'99–116',tag:'Sa',tipps:['Abschluss der Aufbauphase','Gel-Strategie: 1 Gel alle 45 min ab km 12','Nächste Woche beginnt Intensivierung!']},
+    ],
+    // ── W6 (INTENSIVIERUNG) ───────────────────────────────────
+    [
+      {typ:'RE',titel:'Regeneration',km:9,pace:'6:20–6:50',hfZone:'Z1–Z2',hfBpm:'83–116',tag:'Mo',tipps:['Intensivierungsphase beginnt!','Muskeln mit Foam-Rolling pflegen','Hydration nicht vergessen']},
+      {typ:'DL',titel:'Intensiver Dauerlauf',km:15,pace:'5:45–6:05',hfZone:'Z2–Z3',hfBpm:'99–132',tag:'Mi',tipps:['Etwas flottereres Tempo als bisher','Letztes Drittel leicht anziehen','Kurze Bodenkontaktzeiten anstreben']},
+      {typ:'TL',titel:'Schwellenlauf 3×2 km',km:12,pace:'5:15–5:20',hfZone:'Z4',hfBpm:'132–149',tag:'Do',tipps:['3×2 km im Schwellentempo, 3 min Pause','Knapp unter «unbequem»','Letztes Intervall darf das schnellste sein']},
+      {typ:'LL',titel:'Langer Lauf mit Marathon-Pace-Abschnitt',km:24,pace:'6:00–6:20',hfZone:'Z2',hfBpm:'99–116',tag:'Sa',tipps:['km 14–20: Marathon-Zielpace (5:41) einlegen','Zeigt wie es sich im Rennen anfühlt','Nicht überdrücken – Kanada kommt noch!']},
+    ],
+    // ── W7 ───────────────────────────────────────────────────
+    [
+      {typ:'RE',titel:'Lockerer Lauf',km:9,pace:'6:20–6:50',hfZone:'Z1–Z2',hfBpm:'83–116',tag:'Mo',tipps:['Gut schlafen ist jetzt entscheidend','Alkohol diese Wochen meiden','Auf Körpersignale achten']},
+      {typ:'DL',titel:'Dauerlauf Z3',km:16,pace:'5:45–6:00',hfZone:'Z3',hfBpm:'116–132',tag:'Mi',tipps:['Stabileres Z3-Tempo über längere Distanz','Atemtest: Satz sprechen aber nicht einfach','Gut hydriert starten']},
+      {typ:'TL',titel:'Fahrtspiel Intensiv',km:13,pace:'5:00–5:20',hfZone:'Z4',hfBpm:'132–149',tag:'Do',tipps:['5×5 min im Renntempo, 3 min locker dazwischen','Zeigt aktuelle Fitness','Keine Pace unter 5:00']},
+      {typ:'LL',titel:'Langer Lauf',km:25,pace:'6:00–6:15',hfZone:'Z2',hfBpm:'99–116',tag:'Sa',tipps:['Verpflegungsstrategie komplett testen','Rennschuhe tragen – auf Blasen achten','Erholung danach priorisieren']},
+    ],
+    // ── W8 (DELOAD) ───────────────────────────────────────────
+    [
+      {typ:'RE',titel:'Regeneration',km:9,pace:'6:20–6:50',hfZone:'Z1',hfBpm:'83–99',tag:'Mo',tipps:['Deload-Woche – Körper braucht diese Pause','Gut essen, gut schlafen','Vertrauen in den Prozess']},
+      {typ:'DL',titel:'Lockerer Dauerlauf',km:11,pace:'6:10–6:30',hfZone:'Z2',hfBpm:'99–116',tag:'Mi',tipps:['Keine Ambitionen – einfach genießen','Beine werden sich besser anfühlen','Kanada ist in Sichtweite!']},
+      {typ:'TL',titel:'Lockerere Tempoeinheit',km:9,pace:'5:25–5:35',hfZone:'Z3',hfBpm:'116–132',tag:'Do',tipps:['2×12 min mittleres Tempo','Keine volle Belastung','Qualität über Quantität']},
+      {typ:'LL',titel:'Mittellanger Lauf',km:18,pace:'6:10–6:25',hfZone:'Z2',hfBpm:'99–116',tag:'Sa',tipps:['Kürzerer Wochenendlauf zur Erholung','Freude am Laufen tanken','Nächste Woche: letzte Hochphase vor Kanada']},
+    ],
+    // ── W9 ───────────────────────────────────────────────────
+    [
+      {typ:'RE',titel:'Lockerer Lauf',km:10,pace:'6:20–6:50',hfZone:'Z1–Z2',hfBpm:'83–116',tag:'Mo',tipps:['Erholt und frisch nach Deload','Energie nutzen, aber noch zurückhalten','In 3 Wochen geht es nach Kanada!']},
+      {typ:'DL',titel:'Dauerlauf mit Temposteigerung',km:16,pace:'5:45–6:05',hfZone:'Z2–Z3',hfBpm:'99–132',tag:'Mi',tipps:['Letztes Drittel auf Z3 anziehen','Auf Lauftechnik achten','Beine sind frisch – nutzen!']},
+      {typ:'TL',titel:'Intervalle 5×1 km',km:13,pace:'5:00–5:10',hfZone:'Z4',hfBpm:'132–149',tag:'Do',tipps:['5×1 km in 10k-Tempo, 90 sek Pause','Konstante Pace zwischen den Intervallen','Gründlich aufwärmen']},
+      {typ:'LL',titel:'Langer Lauf mit Einspiel',km:26,pace:'5:55–6:15',hfZone:'Z2',hfBpm:'99–116',tag:'Sa',tipps:['km 15–22: etwas schneller (5:45–5:50)','Zeigt Bereitschaft für Peak nach Kanada','2 Tage danach wirklich erholen']},
+    ],
+    // ── W10 ──────────────────────────────────────────────────
+    [
+      {typ:'RE',titel:'Lockerer Lauf',km:10,pace:'6:20–6:50',hfZone:'Z1–Z2',hfBpm:'83–116',tag:'Mo',tipps:['Gute Basis ist gelegt!','Letzte intensive Woche vor Nova Scotia','Schlaf priorisieren']},
+      {typ:'DL',titel:'Dauerlauf Schwelle',km:16,pace:'5:40–6:00',hfZone:'Z2–Z3',hfBpm:'99–132',tag:'Mi',tipps:['Flotterster Dauerlauf bisher','HF kontrollieren: Z3 max','Ernährung und Hydration stimmt?']},
+      {typ:'TL',titel:'Marathon-Pace Lauf',km:13,pace:'5:38–5:45',hfZone:'Z3–Z4',hfBpm:'116–149',tag:'Do',tipps:['8 km auf exakter Renntempo (5:41/km)','Fühle wie sich das Tempo «frisch» anfühlt','Dieser Formcheck ist wichtig']},
+      {typ:'LL',titel:'Langer Lauf 27 km',km:27,pace:'5:55–6:10',hfZone:'Z2',hfBpm:'99–116',tag:'Sa',tipps:['Letzter langer Lauf vor Kanada!','Verpflegung wie am Renntag testen','Gut erholen: nächste Woche Reise-Modus']},
+    ],
+    // ── W11 (Übergang zu Kanada) ──────────────────────────────
+    [
+      {typ:'RE',titel:'Lockerer Erholungslauf',km:9,pace:'6:20–6:50',hfZone:'Z1–Z2',hfBpm:'83–116',tag:'Mo',tipps:['Übergangswoche – Intensität bewusst senken','Koffer packen mental schon beginnen','Laufausrüstung für Kanada einpacken nicht vergessen!']},
+      {typ:'DL',titel:'Moderater Dauerlauf',km:14,pace:'5:55–6:15',hfZone:'Z2',hfBpm:'99–116',tag:'Mi',tipps:['Ruhigeres Tempo – kein Druck mehr','Genuss im Vordergrund','Gut trinken']},
+      {typ:'TL',titel:'Kurze Tempoeinheit',km:8,pace:'5:20–5:35',hfZone:'Z3',hfBpm:'116–132',tag:'Do',tipps:['2×10 min mittleres Tempo','Beine frisch halten für die Reise','Kein Überdrücken diese Woche']},
+      {typ:'LL',titel:'Letzter Lauf vor Kanada',km:18,pace:'6:05–6:25',hfZone:'Z2',hfBpm:'99–116',tag:'Sa',tipps:['Ruhig und entspannt laufen','Mentale Vorbereitung: Nova Scotia wartet!','Gut schlafen vor dem Flug']},
+    ],
+    // ── W12 (KANADA 🍁 – 3.–9. August) ──────────────────────
+    [
+      {typ:'KA',titel:'🍁 Küstenlauf Nova Scotia',km:10,pace:'6:20–6:50',hfZone:'Z2',hfBpm:'99–116',tag:'Mo',tipps:['Zeitzone: ADT = MESZ −5h – morgens früh laufen empfehlen','Nova Scotia hat wunderschöne Küstenpfade!','Keine Leistungsziele – Genuss und Erholung']},
+      {typ:'KA',titel:'🍁 Dauerlauf Kanada',km:12,pace:'6:10–6:30',hfZone:'Z2',hfBpm:'99–116',tag:'Mi',tipps:['Hügeliges Gelände ist ideal als Kraft-Training','Langsamere Pace bei Hügeln völlig ok','Eindrücke genießen!']},
+      {typ:'KA',titel:'🍁 Lockeres Laufen',km:8,pace:'6:30–7:00',hfZone:'Z1–Z2',hfBpm:'83–116',tag:'Do',tipps:['Sehr locker – du bist im Urlaub!','Strand-Lauf wenn möglich','Barfuß am Strand als Bonus']},
+      {typ:'KA',titel:'🍁 Langer Lauf Kanada',km:18,pace:'6:10–6:30',hfZone:'Z2',hfBpm:'99–116',tag:'Sa',tipps:['Landschaft statt Pace – Augen auf!','Hydration: Wasser mitnehmen','Sonnencreme nicht vergessen (UV in Kanada stark)']},
+    ],
+    // ── W13 (KANADA 🍁 – 10.–16. August) ────────────────────
+    [
+      {typ:'KA',titel:'🍁 Morgenrunde Nova Scotia',km:9,pace:'6:20–6:50',hfZone:'Z1–Z2',hfBpm:'83–116',tag:'Mo',tipps:['Frühmorgens laufen (6–7 Uhr lokal) wenn kühl','Zweite Kanadawoche – Beine sollten sich erholt anfühlen','Kein Leistungsdruck!']},
+      {typ:'KA',titel:'🍁 Erholungslauf',km:10,pace:'6:20–6:50',hfZone:'Z2',hfBpm:'99–116',tag:'Mi',tipps:['Moderate Distanz – Reise-Beine locker machen','Auf Flüssigkeit achten (Flugzeug trocknet aus)','Stretching danach']},
+      {typ:'KA',titel:'🍁 Lockerer Lauf',km:8,pace:'6:30–7:00',hfZone:'Z1–Z2',hfBpm:'83–116',tag:'Do',tipps:['Sehr locker – genießen','Vielleicht letzter Kanada-Lauf?','Ab 18. August zurück in Deutschland']},
+      {typ:'KA',titel:'🍁 Abschlusslauf Kanada',km:14,pace:'6:10–6:25',hfZone:'Z2',hfBpm:'99–116',tag:'Sa',tipps:['Letzter Lauf in Nova Scotia','Erinnerungen sammeln','Nächste Woche: Peak-Phase beginnt! Energie ist da!']},
+    ],
+    // ── W14 (PEAK – zurück aus Kanada) ───────────────────────
+    [
+      {typ:'RE',titel:'Sanfter Wiedereinstieg',km:9,pace:'6:20–6:50',hfZone:'Z1–Z2',hfBpm:'83–116',tag:'Mo',tipps:['Zurück aus Kanada – Jetlag beachten (−5h)','Erste Tage ruhig angehen','Beine von der Reise erholen lassen']},
+      {typ:'DL',titel:'Dauerlauf Schwelle',km:17,pace:'5:40–6:00',hfZone:'Z2–Z3',hfBpm:'99–132',tag:'Mi',tipps:['Erster richtiger Qualitätslauf nach Kanada','HF kontrollieren – Jetlag kann HF erhöhen','Auf Körpersignale hören']},
+      {typ:'TL',titel:'Marathon-Pace Lauf',km:14,pace:'5:38–5:45',hfZone:'Z3–Z4',hfBpm:'116–149',tag:'Do',tipps:['10 km auf exakter Renntempo','Wie fühlt sich 5:41 nach Kanada an?','Dieser Lauf ist ein wichtiger Formcheck']},
+      {typ:'LL',titel:'Langer Lauf 28 km',km:28,pace:'5:55–6:10',hfZone:'Z2',hfBpm:'99–116',tag:'Sa',tipps:['Erster großer Peak-Lauf!','Km 20–26: an Rennpace herantasten','Verpflegung wie am Renntag']},
+    ],
+    // ── W15 (PEAK) ───────────────────────────────────────────
+    [
+      {typ:'RE',titel:'Lockerer Lauf',km:10,pace:'6:20–6:50',hfZone:'Z1–Z2',hfBpm:'83–116',tag:'Mo',tipps:['Beine-Hochlegen hilft nach 28km','Kompressionsstrümpfe tragen','Schlaf ist jetzt Priorität']},
+      {typ:'DL',titel:'Intensiver Dauerlauf',km:18,pace:'5:40–6:00',hfZone:'Z2–Z3',hfBpm:'99–132',tag:'Mi',tipps:['Längster Dauerlauf des Plans','Mittelteil auf Z3','Schultern entspannt halten']},
+      {typ:'TL',titel:'Schwellen-Intervalle 3×3 km',km:15,pace:'5:18–5:28',hfZone:'Z4',hfBpm:'132–149',tag:'Do',tipps:['3×3 km im Halbmarathon-Tempo','4 min Pause zwischen den Blöcken','Mental stark bleiben in der Mitte']},
+      {typ:'LL',titel:'Langer Lauf 30 km',km:30,pace:'5:55–6:10',hfZone:'Z2',hfBpm:'99–116',tag:'Sa',tipps:['30 km – bedeutende Barriere!','Das Rennen über km 30 entscheidet sich jetzt','Tempo nach hinten halten']},
+    ],
+    // ── W16 (PEAK – höchstes Volumen) ────────────────────────
+    [
+      {typ:'RE',titel:'Regeneration',km:10,pace:'6:20–6:50',hfZone:'Z1',hfBpm:'83–99',tag:'Mo',tipps:['Respekt vor dem Körper – 30km haben Spuren','Nutrition priorisieren: Eiweiß & KH','Kein Alkohol diese Woche']},
+      {typ:'DL',titel:'Steady-State Lauf',km:17,pace:'5:45–6:00',hfZone:'Z2–Z3',hfBpm:'99–132',tag:'Mi',tipps:['Gleichmäßiges Tempo – teste die Erholung','Wenn müde: langsamer!','HF sollte sich normal anfühlen']},
+      {typ:'TL',titel:'Marathon-Pace Kontrolllauf',km:13,pace:'5:38–5:45',hfZone:'Z3–Z4',hfBpm:'116–149',tag:'Do',tipps:['8 km exakt auf Renntempo','Wie leicht fühlt sich 5:41 an?','Das ist dein Formcheck für Berlin']},
+      {typ:'LL',titel:'Langer Lauf 32 km 🏔️',km:32,pace:'5:55–6:15',hfZone:'Z2',hfBpm:'99–116',tag:'Sa',tipps:['DER Schlüssellauf des Plans!','Vollständige Rennverpflegungsstrategie','Km 24–32: mentale Stärke gefragt']},
+    ],
+    // ── W17 (DELOAD nach Peak) ────────────────────────────────
+    [
+      {typ:'RE',titel:'Leichte Regeneration',km:8,pace:'6:30–7:00',hfZone:'Z1',hfBpm:'83–99',tag:'Mo',tipps:['32km verdient echte Erholung!','Schmerzen? Physio sofort aufsuchen','Kanada hat gut vorbereitet – die Arbeit ist getan']},
+      {typ:'DL',titel:'Lockerer Lauf',km:12,pace:'6:10–6:30',hfZone:'Z2',hfBpm:'99–116',tag:'Mi',tipps:['Reduziertes Volumen nach dem Höhepunkt','Vertrauen: der Körper wird jetzt stärker','Tapering beginnt nächste Woche!']},
+      {typ:'TL',titel:'Kurze Tempoeinheit',km:8,pace:'5:25–5:35',hfZone:'Z3',hfBpm:'116–132',tag:'Do',tipps:['Nur 2×12 min lockeres Tempo','Beine frisch halten','Kein Überdrücken']},
+      {typ:'LL',titel:'Mittellanger Lauf',km:22,pace:'6:05–6:25',hfZone:'Z2',hfBpm:'99–116',tag:'Sa',tipps:['Deutlich kürzer – das fühlt sich seltsam an','Das ist gut!','Tapering-Prozess beginnt jetzt']},
+    ],
+    // ── W18 (TAPERING) ────────────────────────────────────────
+    [
+      {typ:'RE',titel:'Lockerer Taper-Lauf',km:9,pace:'6:20–6:50',hfZone:'Z1–Z2',hfBpm:'83–116',tag:'Mo',tipps:['Tapering! Volumen halbiert','Sich unwohl fühlen ist NORMAL','Nicht in Panik extra laufen']},
+      {typ:'DL',titel:'Lauf mit Renn-Einlagen',km:12,pace:'5:50–6:10',hfZone:'Z2–Z3',hfBpm:'99–132',tag:'Mi',tipps:['Mittelteil: 2×15 min auf Renntempo','Schärfe erhalten ohne Ermüdung','Beine sollten sich frisch anfühlen']},
+      {typ:'TL',titel:'Taper-Intervalle',km:8,pace:'5:05–5:15',hfZone:'Z4',hfBpm:'132–149',tag:'Do',tipps:['3×1 km scharf, 2 min Pause','Kurz und knackig','Danach: volle Erholung!']},
+      {typ:'LL',titel:'Letzter langer Lauf',km:20,pace:'6:05–6:20',hfZone:'Z2',hfBpm:'99–116',tag:'Sa',tipps:['Letzter Lauf über 20 km vor Berlin','Ruhig und entspannt','Gedanken sammeln: du bist bereit!']},
+    ],
+    // ── W19 ───────────────────────────────────────────────────
+    [
+      {typ:'RE',titel:'Ganz lockerer Lauf',km:7,pace:'6:30–7:10',hfZone:'Z1',hfBpm:'83–99',tag:'Mo',tipps:['Sehr kurz, sehr locker','Nur um die Beine zu lockern','Kein Leistungsdruck']},
+      {typ:'DL',titel:'Lauf mit Renntempo-Einlage',km:10,pace:'6:00–6:20',hfZone:'Z2',hfBpm:'99–116',tag:'Mi',tipps:['Nur 8 min Renntempo einbauen','Alles fühlt sich leicht an – gutes Zeichen!','Hydration diese Woche erhöhen']},
+      {typ:'TL',titel:'Kurze Schärfungseinheit',km:6,pace:'5:10–5:25',hfZone:'Z3–Z4',hfBpm:'116–149',tag:'Do',tipps:['2×6 min flott, viel Pause','Letzte richtige Tempoeinheit','Danach stretchen und erholen']},
+      {typ:'LL',titel:'Lauf mit Renntempo-Einlage',km:15,pace:'6:00–6:15',hfZone:'Z2',hfBpm:'99–116',tag:'Sa',tipps:['Vorletzte Woche vor Berlin!','Letztes km auf Renntempo (5:41)','Frisch und selbstsicher ankommen']},
+    ],
+    // ── W20 (RENNWOCHE) ───────────────────────────────────────
+    [
+      {typ:'RE',titel:'Leichter Lauf',km:6,pace:'6:30–7:00',hfZone:'Z1',hfBpm:'83–99',tag:'Mo',tipps:['Rennwoche! Sehr wenig laufen','Beine schonen','Schlafen, essen, entspannen']},
+      {typ:'DL',titel:'Lockerer Lauf mit Steigerungen',km:8,pace:'6:10–6:30',hfZone:'Z2',hfBpm:'99–116',tag:'Di',tipps:['4×100m Steigerungen am Ende','Nervosität ist normal und gut','Du bist vorbereitet – 20 Wochen harte Arbeit!']},
+      {typ:'TL',titel:'Mini-Aktivierung',km:4,pace:'6:00–6:20',hfZone:'Z1–Z2',hfBpm:'83–116',tag:'Do',tipps:['Nur 20 min lockeres Joggen','Kein Tempo!','Ausrüstung + Gepäck vorbereiten']},
+      {typ:'LL',titel:'BERLIN MARATHON 🏅',km:42.195,pace:'5:38–5:45',hfZone:'Z3–Z4',hfBpm:'116–149',tag:'So 27.09.',tipps:['Erste 10 km konservativ (5:50)','Halbmarathon-Ziel: ~1:58:00','Km 30–35 wird schwer – mentale Kraft!','Nova Scotia hat dich stark gemacht!','Brandenburger Tor: alles geben! 🏆']},
+    ],
+  ];
+
+  for (let w = 0; w < 20; w++) {
+    // W1 = Rumpfwoche Fr 15.05.; W2+ beginnen Mo 18.05. und laufen je 7 Tage
+    const ERSTER_MONTAG = new Date('2026-05-18');
+    const wDatum = w === 0
+      ? new Date(startDatum)
+      : new Date(ERSTER_MONTAG.getTime() + (w - 1) * 7 * 86400000);
+    const woche = {
+      nummer: w + 1,
+      km: WOCHENVOLUMEN[w],
+      datum: wDatum,
+      einheiten: blaupausen[w].map((e, i) => ({
+        ...e,
+        id: `w${w+1}-e${i+1}`,
+        woche: w + 1,
+      })),
+    };
+    plan.push(woche);
+  }
+  return plan;
+}
+
+const PLAN = erstellePlan();
+const RENNTAG = new Date('2026-09-27');
+const PLAN_START = new Date('2026-05-15');
+
+// ============================================================
+// LOCALSTORAGE
+// ============================================================
+function ladeErledigt() {
+  try { return JSON.parse(localStorage.getItem('bm_erledigt') || '{}'); }
+  catch { return {}; }
+}
+function speichereErledigt(erledigt) {
+  localStorage.setItem('bm_erledigt', JSON.stringify(erledigt));
+}
+function ladeCheckliste() {
+  try { return JSON.parse(localStorage.getItem('bm_checkliste') || '{}'); }
+  catch { return {}; }
+}
+function speichereCheckliste(data) {
+  localStorage.setItem('bm_checkliste', JSON.stringify(data));
+}
+
+// ============================================================
+// HILFSFUNKTIONEN
+// ============================================================
+function formatDatum(d) {
+  return d.toLocaleDateString('de-DE', { day:'2-digit', month:'2-digit', year:'numeric' });
+}
+function formatDatumKurz(d) {
+  return d.toLocaleDateString('de-DE', { day:'2-digit', month:'2-digit' });
+}
+function aktuelleWoche() {
+  const heute = new Date();
+  const diff = heute - PLAN_START;
+  const woche = Math.floor(diff / (7 * 86400000)) + 1;
+  return Math.max(1, Math.min(20, woche));
+}
+function sekundenZuPace(sek) {
+  const m = Math.floor(sek / 60);
+  const s = Math.round(sek % 60);
+  return `${m}:${String(s).padStart(2,'0')}`;
+}
+function paceZuSekunden(paceStr) {
+  const [m, s] = paceStr.split(':').map(Number);
+  return m * 60 + s;
+}
+
+// ============================================================
+// COUNTDOWN
+// ============================================================
+function aktualisiereCountdown() {
+  const heute = new Date();
+  const diff = RENNTAG - heute;
+
+  if (diff < 0) {
+    document.getElementById('countdown-tage').textContent = '🏅 Geschafft!';
+    document.getElementById('cd-tage-gross').textContent = '🏅';
+    document.getElementById('cd-bar-fill').style.width = '100%';
+    document.getElementById('cd-prozent').textContent = 'Rennen gelaufen!';
+    return;
+  }
+
+  const tage = Math.floor(diff / 86400000);
+  document.getElementById('countdown-tage').textContent = `${tage} Tage`;
+
+  // Großer Countdown im Dashboard
+  document.getElementById('cd-tage-gross').textContent = tage;
+
+  // Fortschrittsbalken: von Trainingsstart (01.06.2026) bis Renntag
+  const gesamtDiff = RENNTAG - PLAN_START;
+  const vergangen = heute - PLAN_START;
+  const pct = Math.min(100, Math.max(0, Math.round((vergangen / gesamtDiff) * 100)));
+  document.getElementById('cd-bar-fill').style.width = pct + '%';
+  document.getElementById('cd-prozent').textContent = pct + ' % absolviert';
+}
+
+// ============================================================
+// DASHBOARD
+// ============================================================
+function aktualisiereDashboard() {
+  const erledigt = ladeErledigt();
+  const gesamtEinheiten = PLAN.reduce((acc, w) => acc + w.einheiten.length, 0);
+  const erledigtAnz = Object.values(erledigt).filter(Boolean).length;
+  const aw = aktuelleWoche();
+
+  document.getElementById('d-wochen').textContent = aw <= 20 ? `${aw} / 20` : 'Renntag!';
+  document.getElementById('d-erledigt').textContent = `${erledigtAnz} / ${gesamtEinheiten}`;
+
+  const pct = Math.round((erledigtAnz / gesamtEinheiten) * 100);
+  document.getElementById('progress-fill').style.width = pct + '%';
+  document.getElementById('progress-label').textContent = `${erledigtAnz} von ${gesamtEinheiten} Einheiten abgehakt (${pct}%)`;
+
+  // Nächste Einheit finden
+  let naechste = null;
+  outer: for (const woche of PLAN) {
+    for (const e of woche.einheiten) {
+      if (!erledigt[e.id]) { naechste = { e, woche }; break outer; }
+    }
+  }
+  if (naechste) {
+    document.getElementById('ne-titel').textContent = naechste.e.titel;
+    document.getElementById('ne-desc').textContent = `${naechste.e.km} km · Pace: ${naechste.e.pace} min/km · HF: ${naechste.e.hfZone}`;
+    document.getElementById('ne-meta').textContent = `Woche ${naechste.woche.nummer} · ${naechste.e.tag} · ${formatDatum(naechste.woche.datum)}`;
+  } else {
+    document.getElementById('ne-titel').textContent = '🏅 Alle Einheiten abgehakt!';
+    document.getElementById('ne-desc').textContent = 'Bereit für Berlin!';
+    document.getElementById('ne-meta').textContent = '27. September 2026';
+  }
+}
+
+// ============================================================
+// CHART
+// ============================================================
+let volumChart = null;
+function erstelleChart() {
+  const erledigt = ladeErledigt();
+  const ctx = document.getElementById('volumChart').getContext('2d');
+  const farben = PLAN.map((w, i) => {
+    const aw = aktuelleWoche() - 1;
+    if (i < aw) return '#4caf8c';
+    if (i === aw) return '#c9a84c';
+    return '#c7d8ef';
+  });
+
+  if (volumChart) volumChart.destroy();
+  volumChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: PLAN.map(w => `W${w.nummer}`),
+      datasets: [{
+        label: 'km / Woche',
+        data: PLAN.map(w => w.km),
+        backgroundColor: farben,
+        borderRadius: 6,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            title: (items) => `Woche ${items[0].dataIndex + 1}`,
+            label: (item) => ` ${item.raw} km`,
+          }
+        }
+      },
+      scales: {
+        y: { beginAtZero: true, grid: { color: '#f0f0f0' }, ticks: { callback: v => v + ' km' } },
+        x: { grid: { display: false } }
+      }
+    }
+  });
+}
+
+// ============================================================
+// TRAININGSPLAN RENDERN
+// ============================================================
+function renderPlan() {
+  const container = document.getElementById('plan-container');
+  const erledigt = ladeErledigt();
+  let html = '';
+  let letztePhase = '';
+
+  PLAN.forEach(woche => {
+    // Phase-Header
+    const phase = getPhase(woche.nummer);
+    if (phase.name !== letztePhase) {
+      letztePhase = phase.name;
+      html += `
+        <div class="plan-phase-header">
+          <span class="phase-badge" style="background:${phase.farbe};color:#fff">${phase.kuerzel}</span>
+          <span class="phase-name">${phase.name}</span>
+          <span class="phase-info">– ${phase.beschreibung}</span>
+        </div>`;
+    }
+
+    const istRumpf = woche.nummer === 1;
+    const wochendatum = formatDatumKurz(woche.datum);
+    // W1 endet So 17.05. (nur 3 Tage Fr–So), alle anderen 7 Tage
+    const endDatum = new Date(woche.datum);
+    endDatum.setDate(endDatum.getDate() + (istRumpf ? 2 : 6));
+
+    html += `
+      <div class="woche-card">
+        <div class="woche-header" onclick="toggleWoche(${woche.nummer})">
+          <div>
+            <span class="woche-nr">Woche ${woche.nummer}${istRumpf ? ' 🟡 Rumpfwoche' : ''}</span>
+            <span class="woche-datum"> · ${wochendatum} – ${formatDatumKurz(endDatum)}</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px">
+            <span class="woche-km">${woche.km} km</span>
+            <span class="woche-toggle" id="toggle-${woche.nummer}">▼</span>
+          </div>
+        </div>
+        <div class="woche-einheiten" id="einheiten-${woche.nummer}">`;
+
+    // Rumpfwoche zeigt nur Fr/Sa/So, alle anderen Wochen Mo–So
+    const TAGE = istRumpf ? ['Fr','Sa','So'] : ['Mo','Di','Mi','Do','Fr','Sa','So'];
+    // Trainingseinheiten nach Tag-Kürzel indizieren
+    const einheitenMap = {};
+    woche.einheiten.forEach(e => {
+      const tagKuerzel = e.tag.slice(0,2); // "So 27.09." → "So", "Mo" → "Mo"
+      einheitenMap[tagKuerzel] = e;
+    });
+
+    TAGE.forEach(tag => {
+      const e = einheitenMap[tag];
+      if (e) {
+        // Trainingseinheit
+        const istErledigt = erledigt[e.id];
+        html += `
+          <div class="einheit-karte ek-${e.typ} ${istErledigt ? 'erledigt' : ''}"
+               onclick="zeigeModal('${e.id}')">
+            <div class="ek-wochentag">${e.tag}</div>
+            <div class="ek-typ">${e.typ}</div>
+            <div class="ek-titel">${e.titel}</div>
+            <div class="ek-details">${e.km} km · ${e.pace}</div>
+            <div class="ek-details">${e.hfZone} (${e.hfBpm} bpm)</div>
+            <div class="ek-check" onclick="event.stopPropagation()">
+              <input type="checkbox" id="chk-${e.id}" ${istErledigt ? 'checked' : ''}
+                onchange="toggleErledigt('${e.id}')">
+              <label for="chk-${e.id}">${istErledigt ? 'Erledigt' : 'Abhaken'}</label>
+            </div>
+          </div>`;
+      } else {
+        // Ruhetag
+        html += `
+          <div class="einheit-karte ek-RT">
+            <div class="ek-wochentag">${tag}</div>
+            <div class="ek-typ">RT</div>
+            <div class="ek-titel">Ruhetag</div>
+            <div class="ek-details" style="color:#8a9ab0">Aktive Erholung</div>
+            <div class="ek-details" style="color:#b0bec5;font-size:.72rem">Dehnen · Schlafen · Kraft</div>
+          </div>`;
+      }
+    });
+
+    html += `</div></div>`;
+  });
+
+  container.innerHTML = html;
+}
+
+function getPhase(wocheNr) {
+  for (const p of PHASEN) {
+    if (wocheNr >= p.wochen[0] && wocheNr <= p.wochen[1]) return p;
+  }
+  return PHASEN[0];
+}
+
+function toggleWoche(nr) {
+  const el = document.getElementById(`einheiten-${nr}`);
+  const toggle = document.getElementById(`toggle-${nr}`);
+  el.classList.toggle('versteckt');
+  toggle.textContent = el.classList.contains('versteckt') ? '▶' : '▼';
+}
+
+function toggleErledigt(id) {
+  const erledigt = ladeErledigt();
+  erledigt[id] = !erledigt[id];
+  speichereErledigt(erledigt);
+  // Karte aktualisieren
+  const karte = document.querySelector(`[onclick="zeigeModal('${id}')"]`);
+  if (karte) {
+    if (erledigt[id]) karte.classList.add('erledigt');
+    else karte.classList.remove('erledigt');
+  }
+  aktualisiereDashboard();
+  erstelleChart();
+}
+
+// ============================================================
+// MODAL
+// ============================================================
+function findeEinheit(id) {
+  for (const woche of PLAN) {
+    for (const e of woche.einheiten) {
+      if (e.id === id) return { e, woche };
+    }
+  }
+  return null;
+}
+
+function zoneZuFarbe(zone) {
+  const m = { 'Z1': '#4caf50', 'Z2': '#8bc34a', 'Z3': '#ffc107', 'Z4': '#ff9800', 'Z5': '#f44336' };
+  const z = zone.split('–')[0].trim();
+  return m[z] || '#607d8b';
+}
+
+function zeigeModal(id) {
+  const fund = findeEinheit(id);
+  if (!fund) return;
+  const { e, woche } = fund;
+
+  document.getElementById('modal-titel').textContent = e.titel;
+  document.getElementById('modal-meta').textContent =
+    `Woche ${e.woche} · ${e.tag} · ${formatDatum(woche.datum)} · ${getPhase(e.woche).name}`;
+
+  const erledigt = ladeErledigt();
+  const hfFarbe = zoneZuFarbe(e.hfZone);
+
+  document.getElementById('modal-body').innerHTML = `
+    <div class="modal-section">
+      <h4>Trainingsparameter</h4>
+      <div class="modal-row"><span>Distanz</span><span>${e.km} km</span></div>
+      <div class="modal-row"><span>Zielpace</span><span>${e.pace} min/km</span></div>
+      <div class="modal-row"><span>Herzfrequenz-Zone</span>
+        <span><span class="hf-badge" style="background:${hfFarbe};color:#fff">${e.hfZone}</span></span>
+      </div>
+      <div class="modal-row"><span>HF-Bereich</span><span>${e.hfBpm} bpm</span></div>
+      <div class="modal-row"><span>Geschätzte Dauer</span><span>${schaetzDauer(e.km, e.pace)}</span></div>
+    </div>
+    <div class="modal-section">
+      <h4>Trainingstipps</h4>
+      <ul class="modal-tips">
+        ${e.tipps.map(t => `<li>• ${t}</li>`).join('')}
+      </ul>
+    </div>
+    <div class="modal-section">
+      <h4>Einheit abhaken</h4>
+      <label style="display:flex;align-items:center;gap:10px;font-size:.9rem;cursor:pointer">
+        <input type="checkbox" id="modal-chk" ${erledigt[id] ? 'checked' : ''}
+          onchange="toggleErledigt('${id}')" style="width:18px;height:18px;accent-color:var(--blau)">
+        Einheit als erledigt markieren
+      </label>
+    </div>
+  `;
+
+  document.getElementById('modal-overlay').classList.add('aktiv');
+}
+
+function schaetzDauer(km, paceStr) {
+  const pace = paceStr.split('–')[0].trim();
+  const [m, s] = pace.split(':').map(Number);
+  const sekTotal = km * (m * 60 + s);
+  const h = Math.floor(sekTotal / 3600);
+  const min = Math.floor((sekTotal % 3600) / 60);
+  return h > 0 ? `~${h}h ${min}min` : `~${min} min`;
+}
+
+function schliesseModal(event) {
+  if (!event || event.target === document.getElementById('modal-overlay')) {
+    document.getElementById('modal-overlay').classList.remove('aktiv');
+  }
+}
+
+// ============================================================
+// PACE-RECHNER
+// ============================================================
+function berechnePace() {
+  const std = parseInt(document.getElementById('p-std').value) || 0;
+  const min = parseInt(document.getElementById('p-min').value) || 0;
+  const sek = parseInt(document.getElementById('p-sek').value) || 0;
+  const gesamtSek = std * 3600 + min * 60 + sek;
+  const marathonSekPKm = gesamtSek / 42.195;
+
+  const paces = {
+    marathon: marathonSekPKm,
+    easy:     marathonSekPKm * 1.17,
+    longRun:  marathonSekPKm * 1.12,
+    tempo:    marathonSekPKm * 0.94,
+    intervall:marathonSekPKm * 0.89,
+    hm:       marathonSekPKm * 0.97,
+  };
+
+  const html = `
+    <div class="pace-item">
+      <div class="p-val">${sekundenZuPace(paces.marathon)}</div>
+      <div class="p-label">Marathon-Pace</div>
+      <div class="p-desc">min/km · Renntempo</div>
+    </div>
+    <div class="pace-item">
+      <div class="p-val">${sekundenZuPace(paces.easy)}</div>
+      <div class="p-label">Easy Pace</div>
+      <div class="p-desc">Erholungsläufe, Z1–Z2</div>
+    </div>
+    <div class="pace-item">
+      <div class="p-val">${sekundenZuPace(paces.longRun)}</div>
+      <div class="p-label">Long Run Pace</div>
+      <div class="p-desc">Langer Lauf, Z2</div>
+    </div>
+    <div class="pace-item">
+      <div class="p-val">${sekundenZuPace(paces.tempo)}</div>
+      <div class="p-label">Tempo Pace</div>
+      <div class="p-desc">Schwellenläufe, Z4</div>
+    </div>
+    <div class="pace-item">
+      <div class="p-val">${sekundenZuPace(paces.intervall)}</div>
+      <div class="p-label">Intervall-Pace</div>
+      <div class="p-desc">Kurze Intervalle, Z4–Z5</div>
+    </div>
+    <div class="pace-item">
+      <div class="p-val">${sekundenZuPace(paces.hm)}</div>
+      <div class="p-label">HM-Ziel-Pace</div>
+      <div class="p-desc">Halbmarathon-Renntempo</div>
+    </div>
+  `;
+  document.getElementById('pace-ergebnis').innerHTML = html;
+
+  // Berlin-Splits
+  erstelleSplits(gesamtSek, marathonSekPKm);
+}
+
+function erstelleSplits(gesamtSek, paceSek) {
+  // Erste 10 km konservativ (+5%), dann Renntempo
+  const konservativ = paceSek * 1.05;
+  const renntempo = paceSek;
+
+  const splits = [];
+  let kumuliert = 0;
+  let kumuliertSek = 0;
+
+  const kmStufen = [5,10,15,20,21.1,25,30,35,40,42.195];
+  let letzterKm = 0;
+
+  kmStufen.forEach(km => {
+    const abschnitt = km - letzterKm;
+    let abschnittPace;
+    if (km <= 10) abschnittPace = konservativ;
+    else abschnittPace = renntempo;
+
+    const abschnittSek = abschnitt * abschnittPace;
+    kumuliertSek += abschnittSek;
+    const h = Math.floor(kumuliertSek / 3600);
+    const m = Math.floor((kumuliertSek % 3600) / 60);
+    const s = Math.round(kumuliertSek % 60);
+
+    splits.push({
+      km, pace: sekundenZuPace(abschnittPace),
+      zeit: `${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`,
+      istHm: km === 21.1,
+      istZiel: km === 42.195,
+      istKonservativ: km <= 10,
+    });
+    letzterKm = km;
+  });
+
+  const zeile = s => `<tr class="${s.istHm ? 'highlight' : s.istZiel ? 'ziel' : ''}">
+    <td>${s.km === 21.1 ? '21,1 (HM)' : s.km === 42.195 ? '42,2 (Ziel)' : s.km + ' km'}</td>
+    <td>${s.pace} min/km${s.istKonservativ ? ' 🐢' : ''}</td>
+    <td>${s.zeit}</td>
+    <td>${s.istKonservativ ? 'Konservativ' : s.istHm ? 'HM-Check ✓' : s.istZiel ? 'ZIEL! 🏅' : 'Renntempo'}</td>
+  </tr>`;
+
+  document.getElementById('splits-table').innerHTML = `
+    <thead><tr>
+      <th>Kilometer</th><th>Pace</th><th>Gesamt-Zeit</th><th>Strategie</th>
+    </tr></thead>
+    <tbody>${splits.map(zeile).join('')}</tbody>`;
+}
+
+// ============================================================
+// RENNTAG-CHECKLISTE
+// ============================================================
+const CHECKLISTE_ITEMS = [
+  'Laufschuhe (eingelaufen!)',
+  'Laufsocken (keine neuen!)',
+  'Startnummer + Chip befestigt',
+  'GPS-Uhr geladen',
+  'Gels (mind. 4 Stück)',
+  'Vaseline / Bodyglide',
+  'Sportgetränk für Startbereich',
+  'Kleidung: T-Shirt, kurze Hose',
+  'Notfallkontakt auf Startnummer',
+  'ÖPNV-Ticket / Anreise geplant',
+  'Gepäcksack beschriftet',
+  'Wettercheck gemacht',
+  'Pasta-Abendessen Samstag',
+  'Frühstück vorbereitet (4h vor Start)',
+  'Schlafen bis mind. 7 Stunden',
+  'Pacing-Strategie verinnerlicht',
+];
+
+function renderCheckliste() {
+  const data = ladeCheckliste();
+  const div = document.getElementById('checkliste');
+  div.innerHTML = CHECKLISTE_ITEMS.map((item, i) => `
+    <label>
+      <input type="checkbox" ${data[i] ? 'checked' : ''}
+        onchange="toggleChecklistenItem(${i}, this.checked)">
+      ${item}
+    </label>`).join('');
+}
+
+function toggleChecklistenItem(i, val) {
+  const data = ladeCheckliste();
+  data[i] = val;
+  speichereCheckliste(data);
+}
+
+// ============================================================
+// TAB-NAVIGATION
+// ============================================================
+function zeigeTab(name, btn) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('aktiv'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('aktiv'));
+  document.getElementById(`tab-${name}`).classList.add('aktiv');
+  if (btn) btn.classList.add('aktiv');
+
+  // Chart erst zeichnen wenn sichtbar
+  if (name === 'dashboard') erstelleChart();
+}
+
+// ============================================================
+// INITIALISIERUNG
+// ============================================================
+// ============================================================
+// MOTIVATIONSSPRÜCHE (wechseln täglich per Tagesnummer)
+// ============================================================
+const SPRUECHE = [
+  { zitat: 'Der Unterschied zwischen einem Ziel und einem Traum ist ein Trainingsplan.',          autor: '– Unbekannt',             icon: '🎯' },
+  { zitat: 'Laufe, wenn du kannst. Geh, wenn du musst. Kriech, wenn es sein muss – aber hör niemals auf.',  autor: '– Dean Karnazes',         icon: '🏃' },
+  { zitat: 'Jeder Kilometer ist ein Geschenk, das du dir selbst machst.',                         autor: '– Unbekannt',             icon: '🎁' },
+  { zitat: 'Der härteste Schritt bei einem Marathon ist der, der zur Haustür hinausführt.',        autor: '– Unbekannt',             icon: '🚪' },
+  { zitat: 'Du musst nicht schnell sein. Du musst nur schneller sein als das Sofa.',               autor: '– Unbekannt',             icon: '😄' },
+  { zitat: 'Schmerz ist vorübergehend. Stolz ist für immer.',                                      autor: '– Lance Armstrong',       icon: '💪' },
+  { zitat: 'Wenn der Körper aufgeben will, entscheidet der Geist.',                               autor: '– Unbekannt',             icon: '🧠' },
+  { zitat: 'Ich laufe nicht, weil ich muss. Ich laufe, weil ich will – und das macht den Unterschied.', autor: '– Unbekannt',        icon: '❤️' },
+  { zitat: 'Ein Marathon wird nicht am Renntag gewonnen, sondern in den Monaten davor.',           autor: '– Unbekannt',             icon: '📅' },
+  { zitat: 'Du bist einen Lauf entfernt von einer besseren Stimmung.',                            autor: '– Unbekannt',             icon: '😊' },
+  { zitat: 'Disziplin ist die Brücke zwischen Zielen und Leistung.',                              autor: '– Jim Rohn',              icon: '🌉' },
+  { zitat: 'Das Rennen beginnt nicht beim Start – es beginnt bei jedem Training.',                 autor: '– Haile Gebrselassie',    icon: '🌅' },
+  { zitat: 'Fange an, und die Motivation folgt von selbst.',                                       autor: '– Unbekannt',             icon: '🔥' },
+  { zitat: 'Jeder Lauf ist eine neue Chance, der Mensch zu sein, der du sein willst.',            autor: '– Unbekannt',             icon: '🌟' },
+  { zitat: 'Berlin wartet auf dich. Mach dich bereit.',                                            autor: '– Berlin Marathon',       icon: '🏛️' },
+  { zitat: 'Wer aufhört besser zu werden, hat aufgehört gut zu sein.',                            autor: '– Philip Rosenthal',      icon: '📈' },
+  { zitat: 'Dein zukünftiges Ich wird dir für jedes Training danken.',                            autor: '– Unbekannt',             icon: '🙏' },
+  { zitat: 'Nicht die Beine tragen den Läufer – es ist das Herz.',                                autor: '– Emil Zátopek',          icon: '❤️‍🔥' },
+  { zitat: 'Regen ist nur Wasser. Kälte ist nur ein Gefühl. Du bist ein Läufer.',                autor: '– Unbekannt',             icon: '🌧️' },
+  { zitat: 'Langsam laufen ist schneller als gar nicht laufen.',                                   autor: '– Unbekannt',             icon: '🐢' },
+  { zitat: 'Ein guter Läufer hat keinen fixen Schritt – er passt sich dem Weg an.',               autor: '– Lao Tzu (adaptiert)',   icon: '🌊' },
+  { zitat: 'Der Kopf gibt auf, lange bevor der Körper es tut.',                                    autor: '– Roger Bannister',       icon: '🧗' },
+  { zitat: 'Vor dem Brandenburger Tor wirst du wissen, warum du all das auf dich genommen hast.', autor: '– Unbekannt',             icon: '🏆' },
+  { zitat: '55 Jahre Erfahrung sind dein größter Vorteil auf der Strecke.',                        autor: '– Für dich',              icon: '🎖️' },
+  { zitat: 'Regeneration ist kein Zeichen von Schwäche – es ist Teil des Plans.',                  autor: '– Unbekannt',             icon: '😴' },
+  { zitat: 'Jeder Ruhetag macht dich stärker als das Training davor.',                             autor: '– Sportwissenschaft',     icon: '💤' },
+  { zitat: 'Pace ist nichts. Ausdauer ist alles.',                                                  autor: '– Unbekannt',             icon: '⏱️' },
+  { zitat: 'Du läufst nicht gegen andere – du läufst für dich.',                                   autor: '– Unbekannt',             icon: '🏅' },
+  { zitat: 'Das Geheimnis ist anzufangen.',                                                         autor: '– Mark Twain',            icon: '🗝️' },
+  { zitat: 'Wenn du denkst, du schaffst es nicht – denk daran, wie weit du schon gekommen bist.', autor: '– Unbekannt',             icon: '🛤️' },
+  { zitat: 'Marathons enden. Erinnerungen bleiben für immer.',                                     autor: '– Unbekannt',             icon: '📸' },
+  { zitat: 'Sub vier Stunden – das ist kein Traum. Das ist ein Plan.',                             autor: '– Für dich',              icon: '⚡' },
+];
+
+function zeigeTaglicherSpruch() {
+  const heute = new Date();
+  // Tagesnummer im Jahr als Index-Grundlage → wechselt jeden Tag
+  const startOfYear = new Date(heute.getFullYear(), 0, 0);
+  const tagNummer = Math.floor((heute - startOfYear) / 86400000);
+  const spruch = SPRUECHE[tagNummer % SPRUECHE.length];
+  document.getElementById('motiv-zitat').textContent = `„${spruch.zitat}"`;
+  document.getElementById('motiv-autor').textContent = spruch.autor;
+  document.getElementById('motiv-icon').textContent = spruch.icon;
+}
+
+function init() {
+  aktualisiereCountdown();
+  setInterval(aktualisiereCountdown, 60000);
+  zeigeTaglicherSpruch();
+  aktualisiereDashboard();
+  renderPlan();
+  renderCheckliste();
+  berechnePace(); // Default 3:59:59
+  // Chart nach kurzem Delay (Canvas muss sichtbar sein)
+  setTimeout(erstelleChart, 100);
+}
+
+document.addEventListener('DOMContentLoaded', init);
+
+// Tastatur: Escape schließt Modal
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') schliesseModal();
+});
+</script>
+
+</body>
+</html>
